@@ -1,0 +1,11 @@
+.codex
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+# Local environments and dependencies
+mld-env/
+node_modules/
+
+# Large local data artifacts
+*.nc
