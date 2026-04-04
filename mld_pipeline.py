@@ -127,27 +127,37 @@ def get_mld_estimate(
                 logger.warning(f"Failed to extract profiles from GADR {item.get('id')}: {e}")
 
     # 4. Blend Model and Observations (The 'Intelligence' layer MVP)
-    if obs_mld_results:
-        # Calculate a weighted average of observation MLDs based on distance
-        weighted_obs_mld = compute_inverse_distance_weighting(obs_mld_results)
-        
-        # For the MVP 'Blender', we weigh toward nearby observations for our best estimate
-        best_estimate = weighted_obs_mld
-        correction = best_estimate - base_mld
-        
-        # Set confidence based on number and distance
-        if len(obs_mld_results) >= 3 and window_used == "primary":
-            confidence = "High"
-        elif len(obs_mld_results) >= 1:
-            confidence = "Medium"
-        else:
-            confidence = "Low"
-    else:
-        # Fallback entirely to model if no observations
-        best_estimate = base_mld
-        correction = 0.0
-        confidence = "Low"
-        
+    import os
+    import pickle
+    import numpy as np
+    from ML_baseline.features import extract_ml_features
+    
+    correction = 0.0
+    confidence = "Low"
+    
+    # Check for Machine Learning Engine
+    if os.path.exists("ML_baseline/model.pkl"):
+        try:
+            import pandas as pd
+            with open("ML_baseline/model.pkl", "rb") as f:
+                model = pickle.load(f)
+                
+            features = extract_ml_features(rtofs_ds, lat, lon)
+            if features is not None:
+                # Predict the residual
+                X = pd.DataFrame([{
+                    'model_sst': features.model_sst, 
+                    'sst_gradient': features.sst_gradient, 
+                    'model_mld': features.model_mld
+                }])
+                correction = float(model.predict(X)[0])
+                confidence = "High"
+        except Exception as e:
+            logger.error(f"Failed to apply ML model: {e}")
+            
+    # Apply Correction
+    best_estimate = base_mld + correction
+    
     # Prepare serializable provenance info
     nearby_obs_dicts = [
         {
