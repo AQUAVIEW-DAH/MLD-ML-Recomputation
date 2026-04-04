@@ -11,6 +11,10 @@ import csv
 import io
 import json
 import numpy as np
+import ssl
+
+# Create unverified SSL context to avoid CERTIFICATE_VERIFY_FAILED in local run
+ssl_context = ssl._create_unverified_context()
 
 
 DEFAULT_AQUAVIEW_SEARCH_URL = (
@@ -128,7 +132,7 @@ class AquaviewClient:
         if self.api_token:
             headers["Authorization"] = f"Bearer {self.api_token}"
         request = Request(self.search_url, data=data, headers=headers, method="POST")
-        with urlopen(request, timeout=self.timeout_seconds) as response:
+        with urlopen(request, timeout=self.timeout_seconds, context=ssl_context) as response:
             return json.loads(response.read().decode("utf-8"))
 
 
@@ -232,7 +236,7 @@ def fetch_text(url: str, api_token: str | None = None, timeout_seconds: int = 30
     if api_token:
         headers["Authorization"] = f"Bearer {api_token}"
     request = Request(url, headers=headers)
-    with urlopen(request, timeout=timeout_seconds) as response:
+    with urlopen(request, timeout=timeout_seconds, context=ssl_context) as response:
         return response.read().decode("utf-8")
 
 

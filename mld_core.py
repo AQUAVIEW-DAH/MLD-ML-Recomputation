@@ -81,17 +81,22 @@ def compute_mld_temp_threshold(
         return None
 
     tref = np.interp(ref_depth, depth_arr, temp_arr)
-    target = tref - delta_t
 
     for idx in range(len(depth_arr)):
         if depth_arr[idx] <= ref_depth:
             continue
-        if temp_arr[idx] <= target:
+            
+        if abs(temp_arr[idx] - tref) >= delta_t:
             z1, z2 = depth_arr[idx - 1], depth_arr[idx]
             t1, t2 = temp_arr[idx - 1], temp_arr[idx]
-            if np.isclose(t1, t2):
+            
+            diff1 = abs(t1 - tref)
+            diff2 = abs(t2 - tref)
+            
+            if np.isclose(diff1, diff2):
                 return float(z2)
-            return float(z1 + (target - t1) * (z2 - z1) / (t2 - t1))
+                
+            return float(z1 + (delta_t - diff1) * (z2 - z1) / (diff2 - diff1))
 
     return None
 
