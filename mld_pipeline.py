@@ -12,6 +12,7 @@ from aquaview_obs import (
     AquaviewClient, 
     search_with_primary_fallback, 
     extract_ioos_profiles,
+    extract_gadr_profiles,
     ObservationProfile
 )
 
@@ -99,13 +100,11 @@ def get_mld_estimate(
     start_time, end_time = (dt_range[0], dt_range[1]) if len(dt_range) == 2 else ("", "")
     
     for item in features:
-        # Right now we only support IOOS parsing easily per MVP instructions
         collection = item.get("collection", "")
         if "ioos" in collection.lower():
             try:
                 profiles = extract_ioos_profiles(item, bbox, start_time, end_time)
                 for p in profiles:
-                    # Compute MLD for the profile using generic threshold method
                     obs_mld = compute_mld_temp_threshold(p.depth_m, p.temperature_c)
                     if obs_mld is not None:
                         dist = haversine(lon, lat, p.lon, p.lat)
@@ -114,6 +113,18 @@ def get_mld_estimate(
                         )
             except Exception as e:
                 logger.warning(f"Failed to extract profiles from item {item.get('id')}: {e}")
+        elif "gadr" in collection.lower():
+            try:
+                profiles = extract_gadr_profiles(item, bbox, start_time, end_time)
+                for p in profiles:
+                    obs_mld = compute_mld_temp_threshold(p.depth_m, p.temperature_c)
+                    if obs_mld is not None:
+                        dist = haversine(lon, lat, p.lon, p.lat)
+                        obs_mld_results.append(
+                            ObservationMLDResult(profile=p, mld_m=obs_mld, distance_km=dist)
+                        )
+            except Exception as e:
+                logger.warning(f"Failed to extract profiles from GADR {item.get('id')}: {e}")
 
     # 4. Blend Model and Observations (The 'Intelligence' layer MVP)
     if obs_mld_results:

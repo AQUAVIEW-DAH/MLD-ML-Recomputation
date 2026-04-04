@@ -314,14 +314,80 @@ def extract_ioos_profiles(
 
 def extract_gadr_profiles(
     item: dict[str, Any],
-    lat: float,
-    lon: float,
+    bbox: list[float],
     start_time: str,
     end_time: str,
 ) -> list[ObservationProfile]:
-    raise NotImplementedError(
-        "GADR profile extraction is not implemented yet. The current MVP path should start with IOOS."
-    )
+    import tempfile
+    import os
+    import xarray as xr
+    import numpy as np
+    
+    href = get_asset_href(item, ("gdac_prof", "gadr_prof"))
+    if not href:
+        raise ValueError(f"No valid nc asset for {item.get('id')}")
+        
+    request = Request(href)
+    with urlopen(request, timeout=30, context=ssl_context) as response:
+        content = response.read()
+        
+    fd, path = tempfile.mkstemp(suffix='.nc')
+    with os.fdopen(fd, 'wb') as f:
+        f.write(content)
+        
+    profiles = []
+    try:
+        ds = xr.open_dataset(path)
+        if "N_PROF" not in ds.dims:
+            return profiles
+            
+        n_prof = ds.dims.get("N_PROF", 0)
+        start_dt = np.datetime64(start_time.replace("Z", "")) if start_time else np.datetime64('1900-01-01')
+        end_dt = np.datetime64(end_time.replace("Z", "")) if end_time else np.datetime64('2100-01-01')
+        
+        for i in range(n_prof):
+            lat_val = float(ds["LATITUDE"].isel(N_PROF=i).values)
+            lon_val = float(ds["LONGITUDE"].isel(N_PROF=i).values)
+            
+            # Filter spatial limits (generous bbox mapping)
+            if not (bbox[1] <= lat_val <= bbox[3] and bbox[0] <= lon_val <= bbox[2]):
+                continue
+                
+            raw_time = ds["JULD"].isel(N_PROF=i).values
+            if np.isnat(raw_time):
+                continue
+                
+            time_val = np.datetime64(raw_time)
+            if not (start_dt <= time_val <= end_dt):
+                continue
+                
+            str_time = str(time_val)
+            
+            pres_arr = ds["PRES"].isel(N_PROF=i).values
+            temp_arr = ds["TEMP"].isel(N_PROF=i).values
+            
+            valid = np.isfinite(pres_arr) & np.isfinite(temp_arr)
+            pres_clean = pres_arr[valid].tolist()
+            temp_clean = temp_arr[valid].tolist()
+            
+            if len(pres_clean) > 0:
+                profiles.append(ObservationProfile(
+                    source="GADR",
+                    platform_id=str(item.get("id", "")),
+                    profile_id=f"{item.get('id', '')}_{i}",
+                    obs_time=str_time,
+                    lat=lat_val,
+                    lon=lon_val,
+                    depth_m=pres_clean,
+                    temperature_c=temp_clean,
+                    metadata={}
+                ))
+    finally:
+        if 'ds' in locals():
+            ds.close()
+        os.remove(path)
+        
+    return profiles
 
 
 def load_search_results(path: str | Path) -> dict[str, Any]:
