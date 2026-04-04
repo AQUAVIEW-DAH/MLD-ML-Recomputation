@@ -148,6 +148,8 @@ def get_mld_estimate(
                 X = pd.DataFrame([{
                     'model_sst': features.model_sst, 
                     'sst_gradient': features.sst_gradient, 
+                    'model_salinity': features.model_salinity,
+                    'kinetic_energy': features.kinetic_energy,
                     'model_mld': features.model_mld
                 }])
                 correction = float(model.predict(X)[0])

@@ -7,7 +7,7 @@ from typing import List, Dict
 
 from mld_core import DEFAULT_RTOFS_FILE, compute_mld_temp_threshold
 from aquaview_obs import AquaviewClient, build_stac_search_body, extract_ioos_profiles, extract_gadr_profiles
-from features import extract_ml_features
+from ML_baseline.features import extract_ml_features
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,12 +72,15 @@ def build_dataset():
                 continue
                 
             dataset_rows.append({
+                "platform_id": profile.platform_id,
                 "source": profile.source,
                 "lat": round(profile.lat, 4),
                 "lon": round(profile.lon, 4),
                 "obs_time": profile.obs_time,
                 "model_sst": round(feat.model_sst, 4),
                 "sst_gradient": round(feat.sst_gradient, 6),
+                "model_salinity": round(feat.model_salinity, 4),
+                "kinetic_energy": round(feat.kinetic_energy, 6),
                 "model_mld": round(feat.model_mld, 4),
                 "observed_mld": round(obs_mld, 4),
                 "target_delta_mld": round(obs_mld - feat.model_mld, 4)
@@ -87,7 +90,7 @@ def build_dataset():
     logger.info(f"Extracted a final training dataset of {count_profiles} physical data points.")
     
     df = pd.DataFrame(dataset_rows)
-    df.to_csv("training_data.csv", index=False)
+    df.to_csv("ML_baseline/training_data.csv", index=False)
     logger.info("Saved strictly engineered tabular data to: training_data.csv")
 
 if __name__ == "__main__":

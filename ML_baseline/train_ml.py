@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def train_model():
     logger.info("Loading training dataset...")
     try:
-        df = pd.read_csv("training_data.csv")
+        df = pd.read_csv("ML_baseline/training_data.csv")
     except FileNotFoundError:
         logger.error("training_data.csv not found! Run data_builder.py first.")
         return
@@ -23,7 +23,7 @@ def train_model():
         
     # We choose NOT to use Lat/Lon for the generic MVP so the model learns purely physical relationships
     # rather than memorizing spatial coordinate biases, enabling global applicability theoretically.
-    features = ['model_sst', 'sst_gradient', 'model_mld']
+    features = ['model_sst', 'sst_gradient', 'model_salinity', 'kinetic_energy', 'model_mld']
     X = df[features]
     y = df['target_delta_mld']
     
@@ -57,7 +57,7 @@ def train_model():
     # but the evaluation metrics directly represent the proof of concept viability.
     
     # Save the artifact
-    out_file = "model.pkl"
+    out_file = "ML_baseline/model.pkl"
     with open(out_file, "wb") as f:
         pickle.dump(model, f)
     logger.info(f"Serialized optimal pipeline object to: {out_file}")

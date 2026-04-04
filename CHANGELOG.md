@@ -5,6 +5,9 @@ All notable changes to the MLD-ML-Recomputation MVP pipeline will be documented 
 ## [Unreleased]
 
 ### Added
+- `ML_baseline/`: Completely encapsulated Machine Learning Engine directory for extracting gradients, building analytical datastores, and generating dynamic predictive models.
+- **Oceanographic Benchmarking**: Formally standardized the ML Validation paradigm to implement `Spatial/Platform Block cross-validation` over random arrays, strictly avoiding oceanic data leakage.
+- **Proxy Physics Parameters**: Injected `Surface Salinity` and `Surface Current Velocity` arrays into `features.py` to seamlessly proxy Sea Surface Height anomalous kinetics directly from local constraints.
 - `api.py`: FastAPI application wrapping `get_mld_estimate` for quick HTTP querying.
 - `mcp_server.py`: Model Context Protocol (MCP) server implementation wrapping our MLD algorithm for seamless AI agent access.
 - `mld_pipeline.py`: Intermediate Logic & Blender layer that merges RTOFS Model output with Aquaview Observation Profiles through Inverse Distance Weighting.
