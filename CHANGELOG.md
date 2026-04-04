@@ -8,6 +8,7 @@ All notable changes to the MLD-ML-Recomputation MVP pipeline will be documented 
 - `api.py`: FastAPI application wrapping `get_mld_estimate` for quick HTTP querying.
 - `mcp_server.py`: Model Context Protocol (MCP) server implementation wrapping our MLD algorithm for seamless AI agent access.
 - `mld_pipeline.py`: Intermediate Logic & Blender layer that merges RTOFS Model output with Aquaview Observation Profiles through Inverse Distance Weighting.
+- `mld-dashboard/`: Complete Phase 4 Frontend Visualizer built dynamically with React, Vite, and Leaflet mapping for clickable, real-time map queries.
 - `CHANGELOG.md`: Continuous change-tracking document.
 
 ### Changed
