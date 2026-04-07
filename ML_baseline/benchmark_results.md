@@ -1,18 +1,24 @@
-# Initial ML Pipeline Benchmarking (Phase 2)
+# ML Pipeline Benchmarking — v3 (Direct Source Ingestion)
 
-**Timestamp:** 2026-04-03
-**Dataset Constraints:** `rtofs_glo_3dz_f054_6hrly_hvr_US_east.nc` Snapshot (Limited to a singular slice constraint, returning ~6 spatial profiles).
+**Timestamp:** 2026-04-06 22:13
+**Dataset:** 1201 profiles from direct sources (WOD_XBT_2023, WOD_GLD_2023, WOD_APB_2023, WOD_XBT_2024, ERDDAP_GLIDER_ioos-gliderdac-Murphy-20150809T1355)
+**Region:** Gulf of Mexico (-98,18,-80,31)
+**Validation:** GroupShuffleSplit by platform/cruise (11 groups)
 
-## Multi-Model Baseline Leaderboard
+## Multi-Model Leaderboard
 
-| Model | Mean Absolute Error (MAE) | Root Mean Squared Error (RMSE) | $R^2$ Score |
+| Model | MAE | RMSE | R² |
 | :--- | :--- | :--- | :--- |
-| **HistGradientBoosting** | 21.853m | 22.193m | -31.833 |
-| **RandomForest** | 23.276m | 23.697m | -36.433 |
-| **XGBoost** | 24.070m | 31.873m | -66.718 |
-| **LinearRegression** | 41.088m | 41.697m | -114.899 |
+| **XGBoost** | 9.897m | 13.004m | 0.466 |
+| **RandomForest** | 10.863m | 15.836m | 0.208 |
+| **HistGradientBoosting** | 13.725m | 18.876m | -0.125 |
+| **LinearRegression** | 13.867m | 19.867m | -0.247 |
 
-## Evaluation Insights
-1. **Model Selection:** `HistGradientBoostingRegressor` cleanly outperformed standard Random Forest architectures and traditional Regression logic by leveraging LightGBM-style binning over our physical topography (SST Gradients, Surface Salinity, Kinetic Energy). It was subsequently exported to `model.pkl` and connected to `mld_pipeline.py`.
-2. **Artificial Overfitting Context:** Because our prototype spatial bounding queries only found 6 corresponding coordinates over essentially 1 Argo deployment inside this literal specific snapshot, the algorithms natively overfitted (demonstrated by the aggressively negative $R^2$ value since there was no broad testing distribution).
-3. **Future Scaling Steps:** To normalize and harden this architecture, Gregg Jacobs must deploy `data_builder.py` against a multi-year chronological RTOFS folder, allowing the Ground Truth split to genuinely distribute evaluations across independent platform deployments via `GroupShuffleSplit`.
+## Data Summary
+- Total profiles: 1201
+- Source families: {'WOD': 1150, 'ERDDAP_GLIDER': 51}
+- Instruments: {'gld': 963, 'xbt': 95, 'apb': 92, 'erddap_gld': 51}
+- Train/Test split: 1166/35
+- Held-out platforms: {'AIRPLANE': 33, 'VIENNA EXPRESS (Cont.ship;c.s.DGWF2;b.2010;IMO9450416;MMSI218355000)': 1, 'F. G. WALTON SMITH (R/V;c.s.WCZ6292/WDL9255;b.1999;IMO8964501;operated by RSMAS)': 1}
+- Observed MLD range: 7.2m to 77.7m
+- Model MLD range: 13.4m to 100.2m

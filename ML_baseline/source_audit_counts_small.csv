@@ -1,0 +1,9 @@
+provider,source_key,year,instrument,url,status,remote_size_mb,cached,gom_profiles,usable_profiles,notes
+NOAA_NCEI_WOD,WOD_CTD_2023,2023,ctd,https://noaa-wod-pds.s3.amazonaws.com/2023/wod_ctd_2023.nc,available,69.43,True,0,0,
+NOAA_NCEI_WOD,WOD_MRB_2023,2023,mrb,https://noaa-wod-pds.s3.amazonaws.com/2023/wod_mrb_2023.nc,available,31.84,True,0,0,
+NOAA_NCEI_WOD,WOD_DRB_2023,2023,drb,https://noaa-wod-pds.s3.amazonaws.com/2023/wod_drb_2023.nc,available,39.4,True,0,0,
+NOAA_NCEI_WOD,WOD_APB_2023,2023,apb,https://noaa-wod-pds.s3.amazonaws.com/2023/wod_apb_2023.nc,available,39.15,True,166,166,
+NOAA_NCEI_WOD,WOD_CTD_2024,2024,ctd,https://noaa-wod-pds.s3.amazonaws.com/2024/wod_ctd_2024.nc,available,49.29,True,0,0,
+NOAA_NCEI_WOD,WOD_MRB_2024,2024,mrb,https://noaa-wod-pds.s3.amazonaws.com/2024/wod_mrb_2024.nc,available,20.4,True,0,0,
+NOAA_NCEI_WOD,WOD_DRB_2024,2024,drb,https://noaa-wod-pds.s3.amazonaws.com/2024/wod_drb_2024.nc,missing,,False,,,Skipped count because source is not available.
+NOAA_NCEI_WOD,WOD_APB_2024,2024,apb,https://noaa-wod-pds.s3.amazonaws.com/2024/wod_apb_2024.nc,available,24.42,True,0,0,

@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import logging
 from sklearn.ensemble import HistGradientBoostingRegressor
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import mean_absolute_error, r2_score
 
 logging.basicConfig(level=logging.INFO)
@@ -27,9 +27,25 @@ def train_model():
     X = df[features]
     y = df['target_delta_mld']
     
+    if 'platform_id' not in df.columns:
+        logger.warning("No 'platform_id' found, falling back to random groups")
+        groups = np.arange(len(df))
+    else:
+        groups = df['platform_id']
+    
     logger.info(f"Training on {len(df)} samples with features: {features}")
     
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Use GroupShuffleSplit to prevent data leakage from the same temporal mooring/glider deployments
+    gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+    train_idx, test_idx = next(gss.split(X, y, groups=groups))
+    
+    X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
+    y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
+    
+    if 'platform_id' in df.columns:
+        train_platforms = df.iloc[train_idx]['platform_id'].nunique()
+        test_platforms = df.iloc[test_idx]['platform_id'].nunique()
+        logger.info(f"Split distribution -> Train: {len(X_train)} samples ({train_platforms} platforms), Test: {len(X_test)} samples ({test_platforms} platforms)")
     
     # HistGradientBoostingRegressor is scikit-learn's answer to LightGBM.
     # Tremendously fast and naturally handles missing values.

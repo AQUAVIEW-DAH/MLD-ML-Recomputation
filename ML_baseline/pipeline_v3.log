@@ -1,0 +1,95 @@
+22:15:17 [INFO] __main__: ============================================================
+22:15:17 [INFO] __main__: MLD ML Data Builder — v3 (Direct Source Ingestion)
+22:15:17 [INFO] __main__: ============================================================
+22:15:17 [INFO] __main__: Loading 7 RTOFS daily snapshots...
+22:15:17 [INFO] __main__:   → rtofs_20260330_US_east.nc (model time: 2026-03-30T06:00:00.000000000)
+22:15:17 [INFO] __main__:   → rtofs_20260331_US_east.nc (model time: 2026-03-31T06:00:00.000000000)
+22:15:17 [INFO] __main__:   → rtofs_20260401_US_east.nc (model time: 2026-04-01T06:00:00.000000000)
+22:15:17 [INFO] __main__:   → rtofs_20260402_US_east.nc (model time: 2026-04-02T06:00:00.000000000)
+22:15:17 [INFO] __main__:   → rtofs_20260403_US_east.nc (model time: 2026-04-03T06:00:00.000000000)
+22:15:17 [INFO] __main__:   → rtofs_20260404_US_east.nc (model time: 2026-04-04T06:00:00.000000000)
+22:15:17 [INFO] __main__:   → rtofs_20260405_US_east.nc (model time: 2026-04-05T06:00:00.000000000)
+22:15:17 [INFO] __main__: Phase 5 choice: WOD observations are temporally decoupled from the available 2026 RTOFS snapshots; selecting the nearest available snapshot for spatial/physical feature extraction.
+22:15:17 [INFO] __main__: Source strategy: bypassing Aquaview for training labels; using direct provider ingestion. WOD years=[2023, 2024] instruments=['xbt', 'gld', 'apb'] ERDDAP gliders=True max_datasets=2
+22:15:17 [INFO] __main__: 
+22:15:17 [INFO] __main__: ============================================================
+22:15:17 [INFO] __main__: PASS 1: WOD S3 Direct Source
+22:15:17 [INFO] __main__: ============================================================
+22:15:17 [INFO] ML_baseline.wod_source: Using cached wod_xbt_2023.nc (211 MB)
+22:15:17 [INFO] ML_baseline.wod_source: WOD XBT 2023: 11135 total casts, 109 inside bbox [-98,18,-80,31]
+22:15:17 [INFO] ML_baseline.wod_source:   → Extracted 109 usable profiles (skipped: 0 sparse, 0 shallow)
+22:15:17 [INFO] ML_baseline.wod_source: Using cached wod_gld_2023.nc (569 MB)
+22:15:17 [INFO] ML_baseline.wod_source: WOD GLD 2023: 86062 total casts, 1208 inside bbox [-98,18,-80,31]
+22:15:18 [INFO] ML_baseline.wod_source:   → Extracted 1042 usable profiles (skipped: 153 sparse, 13 shallow)
+22:15:18 [INFO] ML_baseline.wod_source: Using cached wod_apb_2023.nc (39 MB)
+22:15:18 [INFO] ML_baseline.wod_source: WOD APB 2023: 31181 total casts, 166 inside bbox [-98,18,-80,31]
+22:15:18 [INFO] ML_baseline.wod_source:   → Extracted 166 usable profiles (skipped: 0 sparse, 0 shallow)
+22:15:18 [INFO] ML_baseline.wod_source: Using cached wod_xbt_2024.nc (106 MB)
+22:15:18 [INFO] ML_baseline.wod_source: WOD XBT 2024: 5685 total casts, 82 inside bbox [-98,18,-80,31]
+22:15:18 [INFO] ML_baseline.wod_source:   → Extracted 82 usable profiles (skipped: 0 sparse, 0 shallow)
+22:15:18 [INFO] ML_baseline.wod_source: Using cached wod_gld_2024.nc (59 MB)
+22:15:18 [INFO] ML_baseline.wod_source: WOD GLD 2024: 14672 total casts, 0 inside bbox [-98,18,-80,31]
+22:15:18 [INFO] ML_baseline.wod_source: Using cached wod_apb_2024.nc (24 MB)
+22:15:18 [INFO] ML_baseline.wod_source: WOD APB 2024: 19175 total casts, 0 inside bbox [-98,18,-80,31]
+22:15:18 [INFO] ML_baseline.wod_source: Total WOD profiles extracted: 1399 across 6 year/instrument combos
+22:15:18 [INFO] __main__: Total WOD profiles to process: 1399
+22:15:18 [INFO] __main__: 
+22:15:18 [INFO] __main__: ============================================================
+22:15:18 [INFO] __main__: PASS 2: Direct ERDDAP Glider Sources
+22:15:18 [INFO] __main__: ============================================================
+22:15:18 [INFO] ML_baseline.erddap_glider_source: ERDDAP glider candidates selected: 2
+22:15:19 [INFO] ML_baseline.erddap_glider_source: ERDDAP ioos-gliderdac-Murphy-20150809T1355: extracted 189 usable profiles
+22:15:22 [INFO] ML_baseline.erddap_glider_source: ERDDAP ioos-gliderdac-Murphy-20170426T1610: extracted 334 usable profiles
+22:15:22 [INFO] ML_baseline.erddap_glider_source: Total ERDDAP glider profiles extracted: 523
+22:15:22 [INFO] __main__: Total ERDDAP glider profiles to process: 523
+22:15:22 [INFO] __main__: Total direct-source profiles to process: 1922
+22:15:22 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22290726 source=WOD_XBT_2023 instrument=xbt observed_mld=902.91m max_depth=903.5m platform=TAINO (Cont.ship;c.s.WDJ6598;b.2018;IMO9721970;MMSI367799380)
+22:15:22 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22353632 source=WOD_XBT_2023 instrument=xbt observed_mld=938.01m max_depth=938.6m platform=TAINO (Cont.ship;c.s.WDJ6598;b.2018;IMO9721970;MMSI367799380)
+22:15:22 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22354619 source=WOD_XBT_2023 instrument=xbt observed_mld=327.95m max_depth=988.4m platform=EL COQUI (Cargo ship;c.s.WDJ4838;built 2018;IMO9721968;MMSI367781630)
+22:15:24 [INFO] __main__:   Processing profile 100/1922 (MLD computed: 88, features: 57)
+22:15:25 [INFO] __main__:   Processing profile 200/1922 (MLD computed: 164, features: 129)
+22:15:26 [INFO] __main__:   Processing profile 300/1922 (MLD computed: 255, features: 220)
+22:15:27 [INFO] __main__:   Processing profile 400/1922 (MLD computed: 349, features: 314)
+22:15:28 [INFO] __main__:   Processing profile 500/1922 (MLD computed: 441, features: 406)
+22:15:29 [INFO] __main__:   Processing profile 600/1922 (MLD computed: 536, features: 501)
+22:15:30 [INFO] __main__:   Processing profile 700/1922 (MLD computed: 632, features: 597)
+22:15:31 [INFO] __main__:   Processing profile 800/1922 (MLD computed: 729, features: 694)
+22:15:33 [INFO] __main__:   Processing profile 900/1922 (MLD computed: 822, features: 787)
+22:15:34 [INFO] __main__:   Processing profile 1000/1922 (MLD computed: 914, features: 879)
+22:15:35 [INFO] __main__:   Processing profile 1100/1922 (MLD computed: 1008, features: 973)
+22:15:36 [INFO] __main__:   Processing profile 1200/1922 (MLD computed: 1104, features: 1050)
+22:15:37 [INFO] __main__:   Processing profile 1300/1922 (MLD computed: 1204, features: 1109)
+22:15:38 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22765867 source=WOD_XBT_2024 instrument=xbt observed_mld=256.20m max_depth=988.4m platform=EL COQUI (Cargo ship;c.s.WDJ4838;built 2018;IMO9721968;MMSI367781630)
+22:15:38 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22767457 source=WOD_XBT_2024 instrument=xbt observed_mld=795.10m max_depth=988.4m platform=EL COQUI (Cargo ship;c.s.WDJ4838;built 2018;IMO9721968;MMSI367781630)
+22:15:38 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22767735 source=WOD_XBT_2024 instrument=xbt observed_mld=986.43m max_depth=987.8m platform=EL COQUI (Cargo ship;c.s.WDJ4838;built 2018;IMO9721968;MMSI367781630)
+22:15:38 [WARNING] __main__: Dropping observed-MLD outlier cast_id=22767739 source=WOD_XBT_2024 instrument=xbt observed_mld=423.66m max_depth=988.4m platform=EL COQUI (Cargo ship;c.s.WDJ4838;built 2018;IMO9721968;MMSI367781630)
+22:15:38 [INFO] __main__:   Processing profile 1400/1922 (MLD computed: 1284, features: 1150)
+22:15:39 [INFO] __main__:   Processing profile 1500/1922 (MLD computed: 1297, features: 1163)
+22:15:39 [INFO] __main__:   Processing profile 1600/1922 (MLD computed: 1335, features: 1201)
+22:15:39 [INFO] __main__:   Processing profile 1700/1922 (MLD computed: 1335, features: 1201)
+22:15:39 [INFO] __main__:   Processing profile 1800/1922 (MLD computed: 1335, features: 1201)
+22:15:39 [INFO] __main__:   Processing profile 1900/1922 (MLD computed: 1335, features: 1201)
+22:15:39 [INFO] __main__: 
+22:15:39 [INFO] __main__: Direct-source processing summary:
+22:15:39 [INFO] __main__:   Profiles with valid MLD: 1335
+22:15:39 [INFO] __main__:   Features extracted: 1201
+22:15:39 [INFO] __main__:   Skipped (no MLD computable): 580
+22:15:39 [INFO] __main__:   Skipped (observed MLD > 100m sanity cap): 7
+22:15:39 [INFO] __main__:   Skipped (no RTOFS features): 134
+22:15:39 [INFO] __main__: 
+22:15:39 [INFO] __main__: ============================================================
+22:15:39 [INFO] __main__: PIPELINE COMPLETE
+22:15:39 [INFO] __main__: Total training rows: 1201
+22:15:39 [INFO] __main__: ============================================================
+22:15:39 [INFO] __main__: Saved training data to: /home/suramya/MLD-ML-Recomputation/ML_baseline/training_data.csv
+22:15:39 [INFO] __main__: 
+Provenance Summary:
+22:15:39 [INFO] __main__:   Sources: {'WOD_GLD_2023': 963, 'WOD_APB_2023': 92, 'WOD_XBT_2023': 59, 'ERDDAP_GLIDER_ioos-gliderdac-Murphy-20150809T1355': 51, 'WOD_XBT_2024': 36}
+22:15:39 [INFO] __main__:   Source families: {'WOD': 1150, 'ERDDAP_GLIDER': 51}
+22:15:39 [INFO] __main__:   Instruments: {'gld': 963, 'xbt': 95, 'apb': 92, 'erddap_gld': 51}
+22:15:39 [INFO] __main__:   Unique platforms: 11
+22:15:39 [INFO] __main__:   Lat range: 21.00 to 30.99
+22:15:39 [INFO] __main__:   Lon range: -89.69 to -80.00
+22:15:39 [INFO] __main__:   Observed MLD range: 7.2 to 77.7 m
+22:15:39 [INFO] __main__:   Model MLD range: 13.4 to 100.2 m
+22:15:39 [INFO] __main__:   Target delta range: -88.8 to 46.6 m
