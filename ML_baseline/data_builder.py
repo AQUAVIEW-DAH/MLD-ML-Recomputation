@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 
 from mld_core import compute_mld_temp_threshold
+from ML_baseline.argo_gdac_source import extract_argo_gdac_profiles
 from ML_baseline.features import extract_ml_features
 from ML_baseline.erddap_glider_source import extract_erddap_glider_profiles
 from ML_baseline.wod_source import extract_all_wod_gom_profiles, WODProfile
@@ -45,6 +46,11 @@ WOD_YEARS = [int(v) for v in os.getenv("WOD_YEARS", "2023,2024").split(",") if v
 WOD_INSTRUMENTS = [v.strip().lower() for v in os.getenv("WOD_INSTRUMENTS", "xbt,gld,apb").split(",") if v.strip()]
 INCLUDE_ERDDAP_GLIDERS = os.getenv("INCLUDE_ERDDAP_GLIDERS", "0").lower() in {"1", "true", "yes"}
 ERDDAP_MAX_DATASETS = int(os.getenv("ERDDAP_MAX_DATASETS", "5"))
+INCLUDE_ARGO_GDAC = os.getenv("INCLUDE_ARGO_GDAC", "0").lower() in {"1", "true", "yes"}
+ARGO_MAX_PROFILES = int(os.getenv("ARGO_MAX_PROFILES", "25"))
+ARGO_MAX_PER_PLATFORM = int(os.getenv("ARGO_MAX_PER_PLATFORM", "5"))
+ARGO_START = os.getenv("ARGO_START", "20230101")
+ARGO_END = os.getenv("ARGO_END", "20241231")
 MAX_OBSERVED_MLD_M = 100.0  # QC cap: remove implausibly deep GoM mixed layers
 
 # Output
@@ -94,6 +100,16 @@ def extract_date_from_filename(filepath: Path) -> str:
     raise ValueError(f"Cannot extract date from {filepath.name}")
 
 
+def source_family(source: str) -> str:
+    if str(source).startswith("WOD_"):
+        return "WOD"
+    if str(source).startswith("ERDDAP_GLIDER_"):
+        return "ERDDAP_GLIDER"
+    if str(source).startswith("ARGO_GDAC"):
+        return "ARGO_GDAC"
+    return "UNKNOWN"
+
+
 def build_dataset():
     logger.info("=" * 60)
     logger.info("MLD ML Data Builder — v3 (Direct Source Ingestion)")
@@ -134,6 +150,14 @@ def build_dataset():
         INCLUDE_ERDDAP_GLIDERS,
         ERDDAP_MAX_DATASETS,
     )
+    logger.info(
+        "Argo GDAC direct ingestion enabled=%s max_profiles=%s max_per_platform=%s date=%s/%s",
+        INCLUDE_ARGO_GDAC,
+        ARGO_MAX_PROFILES,
+        ARGO_MAX_PER_PLATFORM,
+        ARGO_START,
+        ARGO_END,
+    )
 
     # ---------------------------------------------------------------
     # STEP 2: Download & extract WOD profiles from S3
@@ -166,10 +190,27 @@ def build_dataset():
     else:
         logger.info("Skipping ERDDAP glider ingestion; set INCLUDE_ERDDAP_GLIDERS=1 to enable.")
 
+    if INCLUDE_ARGO_GDAC:
+        logger.info("")
+        logger.info("=" * 60)
+        logger.info("PASS 3: Direct Argo GDAC Sources")
+        logger.info("=" * 60)
+        argo_profiles = extract_argo_gdac_profiles(
+            bbox=GOM_BBOX,
+            start_yyyymmdd=ARGO_START,
+            end_yyyymmdd=ARGO_END,
+            max_profiles=ARGO_MAX_PROFILES,
+            max_per_platform=ARGO_MAX_PER_PLATFORM,
+        )
+        all_profiles.extend(argo_profiles)
+        logger.info("Total Argo GDAC profiles to process: %d", len(argo_profiles))
+    else:
+        logger.info("Skipping Argo GDAC ingestion; set INCLUDE_ARGO_GDAC=1 to enable.")
+
     logger.info("Total direct-source profiles to process: %d", len(all_profiles))
 
     # ---------------------------------------------------------------
-    # STEP 3: For each WOD profile, compute observed MLD + model features
+    # STEP 3: For each direct-source profile, compute observed MLD + model features
     # ---------------------------------------------------------------
     dataset_rows = []
     total_mld_computed = 0
@@ -221,7 +262,7 @@ def build_dataset():
         dataset_rows.append({
             "rtofs_date": rtofs_date,
             "wod_source": profile.source,
-            "source_family": "WOD" if str(profile.source).startswith("WOD_") else "ERDDAP_GLIDER",
+            "source_family": source_family(profile.source),
             "instrument": profile.instrument,
             "cast_id": profile.cast_id,
             "cruise_id": profile.cruise_id,

@@ -26,6 +26,7 @@ DEFAULT_AUDIT_FILES = [
 ]
 MIN_DEPTH_LEVELS = 5
 MIN_MAX_DEPTH_M = 15.0
+MLD_REF_DEPTH_M = 10.0
 DEFAULT_MAX_DATASETS = 5
 
 ssl_ctx = ssl._create_unverified_context()
@@ -124,6 +125,9 @@ def parse_erddap_glider_csvp(
         rows_by_profile.setdefault(profile_id, []).append(row)
 
     profiles: list[ERDDAPGliderProfile] = []
+    skipped_sparse = 0
+    skipped_shallow = 0
+    skipped_no_ref_depth = 0
     for profile_id, rows in rows_by_profile.items():
         depth_temp: dict[float, list[float]] = {}
         lats: list[float] = []
@@ -155,11 +159,20 @@ def parse_erddap_glider_csvp(
                 times.append(time_val)
 
         if len(depth_temp) < MIN_DEPTH_LEVELS:
+            skipped_sparse += 1
             continue
 
         depth_arr = np.array(sorted(depth_temp.keys()), dtype=float)
         temp_arr = np.array([float(np.mean(depth_temp[depth])) for depth in depth_arr], dtype=float)
         if float(depth_arr.max()) < MIN_MAX_DEPTH_M:
+            skipped_shallow += 1
+            continue
+
+        # The project MLD definition uses a 10m temperature reference. Some
+        # ERDDAP glider profiles only start below 10m, so they cannot produce a
+        # comparable observed MLD label even if they are otherwise profile-like.
+        if not (float(depth_arr.min()) <= MLD_REF_DEPTH_M <= float(depth_arr.max())):
+            skipped_no_ref_depth += 1
             continue
 
         profiles.append(
@@ -176,6 +189,17 @@ def parse_erddap_glider_csvp(
                 temperature_c=temp_arr.tolist(),
             )
         )
+    logger.info(
+        "ERDDAP %s profile QC: %d groups, %d usable, skipped %d sparse, "
+        "%d shallow, %d missing %.1fm reference depth",
+        dataset_id,
+        len(rows_by_profile),
+        len(profiles),
+        skipped_sparse,
+        skipped_shallow,
+        skipped_no_ref_depth,
+        MLD_REF_DEPTH_M,
+    )
     return profiles
 
 

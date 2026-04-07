@@ -7,28 +7,44 @@
 
 ## Executive Summary
 
-The current ML training dataset is not a complete inventory of all possible in-situ sources. It is the subset we have already implemented and verified end-to-end: WOD glider (`gld`), WOD XBT (`xbt`), WOD autonomous pinniped/animal-borne profiler (`apb`), and a limited direct ERDDAP glider smoke-test source, QC-filtered to 1,201 rows.
+The current ML training dataset is not a complete inventory of all possible in-situ sources. It is the subset we have already implemented and verified end-to-end: WOD glider (`gld`), WOD XBT (`xbt`), WOD autonomous pinniped/animal-borne profiler (`apb`), a limited direct ERDDAP glider smoke-test source, and a diversified direct Argo GDAC smoke-test source, QC-filtered to 1,233 rows.
 
 Provider documentation confirms that more in-situ profile sources exist, especially WOD profiling floats (`pfl`), WOD CTD (`ctd`) across a broader year range, Argo GDAC profile NetCDF files, IOOS Glider DAC, SECOORA glider ERDDAP, and OSMC profiler data. However, not every in-situ source is useful for MLD labels. For our target, a source must provide latitude, longitude, time, a vertical temperature/depth profile, enough levels around and below 10m, and platform metadata for grouped validation.
 
 The biggest gap in the current dataset is not general in-situ availability; it is discovery and parsing of additional usable vertical-profile feeds. Buoys and surface stations are valuable for SST validation, but most do not provide full vertical temperature profiles for MLD training.
 
-Direct-source audits now confirm three useful paths beyond the original XBT/glider WOD setup: WOD APB is already ingested, ERDDAP glider servers expose many profile-candidate datasets, and Argo GDAC's global profile index contains thousands of GoM profile-file entries for 2023-2024. The first limited ERDDAP ingestion run added 51 final Murphy glider rows, but also showed that candidate datasets need source-level QC/diagnostics before scaling.
+Direct-source audits now confirm three useful paths beyond the original XBT/glider WOD setup: WOD APB is already ingested, ERDDAP glider servers expose many profile-candidate datasets, and Argo GDAC's global profile index contains thousands of GoM profile-file entries for 2023-2024. The first limited ERDDAP ingestion run added 51 final Murphy glider rows, and a diversified Argo GDAC smoke test added 32 final profile-float rows. These are valid in-situ label sources, but the current builder still uses a short 2026 RTOFS snapshot cache, so the resulting ML table is temporally decoupled from the observation dates.
+
+The next modeling priority is therefore not just more in-situ rows. It is a time-coincident RTOFS audit: determine whether 2023-2024 or another high-overlap in-situ window can be paired to historical Global RTOFS fields at the same valid time. Until that is done, the current `training_data.csv` should be treated as a source-ingestion and feature-extraction smoke test rather than a production-ready correction-training set.
 
 ## Current Dataset Snapshot
 
 | Category | Current Count | Notes |
 |---|---:|---|
-| Total QC-filtered rows | 1,201 | `training_data.csv` after dropping observed MLD > 100m outliers |
+| Total QC-filtered rows | 1,233 | `training_data.csv` after dropping observed MLD > 100m outliers |
 | WOD glider (`gld`) | 963 | Dominated by MOTE-DORA and US055862 |
 | WOD XBT (`xbt`) | 95 | Ship/aircraft transects after QC outlier removal |
 | WOD APB (`apb`) | 92 | New direct WOD source from 2023 autonomous pinniped profiles |
 | ERDDAP glider (`erddap_gld`) | 51 | Limited two-dataset smoke test retained one Murphy deployment |
-| Unique platforms/cruises | 11 | Still too few and imbalanced for strong grouped generalization |
-| Argo / profiling float rows | 0 | Not yet ingested into current CSV |
+| Argo / profiling float rows | 32 | Diversified direct Argo GDAC smoke test across 5 floats |
+| Unique platforms/cruises | 16 | Still too few and imbalanced for strong grouped generalization |
 | CTD rows | 0 | Parser supports WOD `ctd`, but data builder does not enable it yet |
 | Buoy/NDBC rows | 0 | Not currently used for MLD-label training |
 | Surface station rows | 0 | Aquaview/SECOORA kept secondary for validation, not MLD labels |
+
+## Temporal Matching Caveat
+
+The current Phase 5 builder matches historical direct-source observations to the nearest locally available RTOFS snapshot, but the local snapshot cache is a short 2026 window and most current in-situ profiles are from 2023-2024. This mismatch means `target_delta_mld = observed_mld - model_mld` is not yet a same-time RTOFS residual. It is useful for testing source ingestion, feature extraction, and validation plumbing, but it is not a best-case correction model target.
+
+For the next prototype, prefer moving RTOFS backward to match the in-situ observation dates. The target audit should answer:
+
+- How many current direct-source profiles can be paired with same-day historical Global RTOFS fields?
+- How much yield changes under +/-12h and +/-24h tolerances?
+- Which product should define the feature state: analysis/nowcast, a specific forecast lead, or both as separate experiments?
+- Can `rtofs_valid_time`, `obs_model_time_delta_hours`, `rtofs_source`, and `forecast_lead_hours` be recorded for every row?
+- Which in-situ sources are near-real-time enough for future operational use, and what is their typical publication/QC lag?
+
+If historical RTOFS access for the best in-situ window is incomplete, keep the source-ingestion dataset separate and either start a forward-rolling collector or use a consistent reanalysis/hindcast product as a pretraining experiment. Do not collapse temporally decoupled and time-coincident benchmarks into a single model-acceptance result.
 
 ## Provider and Source Comparison
 
@@ -41,7 +57,7 @@ Direct-source audits now confirm three useful paths beyond the original XBT/glid
 | WOD Profiling Float (`pfl`) | WOD dataset code table lists PFL as profiling float data; temperature/salinity are available. | High, if profiles are in/near GoM and QC flags are usable. | Supported by `wod_source.py`, not enabled in `data_builder.py`. | Same WOD code tables as above. | Audit WOD `pfl` by year with GoM bbox; compare to direct Argo GDAC. |
 | WOD Moored Buoy (`mrb`) / Drifting Buoy (`drb`) | WOD includes moored and drifting buoy datasets, and WOD variables table lists temperature for MRB/DRB. | Mixed. Could help if vertical depth samples exist; many buoy records may be surface or sparse. | Not currently implemented. | WOD dataset code table lists MRB/DRB; WOD variables table lists temperature for them. | Probe WOD MRB/DRB for GoM profiles with >=5 depth levels and max depth >=15m. |
 | WOD APB (`apb`) | WOD dataset code table lists APB as autonomous pinniped/animal-borne profiler data; temperature is available in WOD depth-dependent variables. | Moderate to high when profiles are inside GoM and pass QC. | Active. 2023 APB added 92 final training rows; 2024 APB had 0 GoM profiles in this audit. | `source_audit_counts_small.csv`; WOD code tables above. | Keep active, but watch grouped validation because APB residuals are systematically negative in the current split. |
-| Argo GDAC direct | Argo GDACs provide complete Argo profile, trajectory, metadata, and technical data in NetCDF, with index files and tools for location/time searches. | High. Argo profile files contain PRES/TEMP/PSAL and QC fields. | Not yet implemented; Aquaview GADR path was misleading for GoM. | Argo GDAC docs: <https://argo.ucsd.edu/data/data-from-gdacs/>; profile docs: <https://argo.ucsd.edu/data/how-to-use-argo-files/> | Build direct index-based discovery for GoM/Western Atlantic profiles. |
+| Argo GDAC direct | Argo GDACs provide complete Argo profile, trajectory, metadata, and technical data in NetCDF, with index files and tools for location/time searches. | High. Argo profile files contain PRES/TEMP/PSAL and QC fields. | Implemented as an opt-in smoke-test source; current diversified run retained 32 rows from 5 floats. Aquaview GADR path was misleading for GoM. | Argo GDAC docs: <https://argo.ucsd.edu/data/data-from-gdacs/>; profile docs: <https://argo.ucsd.edu/data/how-to-use-argo-files/> | Scale only after time-coincident RTOFS matching is solved or separated from source-ingestion smoke tests. |
 | OSMC profilers | OSMC provides global in-situ observing-system monitoring and an ERDDAP profiler table with profile coordinates, depth, parameter name, and observation values. | Potentially high for profiler discovery, but may require reshaping from observation rows into profiles. | Not implemented. | OSMC: <https://www.osmc.noaa.gov/>; OSMC profiler ERDDAP example: <https://osmc.noaa.gov/erddap/tabledap/OSMC_PROFILERS> | Test as a discovery and/or lightweight profile feed; verify if it has enough levels for MLD. |
 | IOOS Glider DAC | IOOS describes a Glider DAC for centralized glider data distribution, visualization, web services, GTS, and NCEI archive. | High. Glider ERDDAP datasets expose depth, temperature, lat/lon, time, and QC flags. | Discovery implemented in `source_audit.py`; 73 profile candidates found in a first-page audit. Direct parser is implemented, but the current smoke test used SECOORA Murphy deployments first. | IOOS access: <https://ioos.noaa.gov/data/access-ioos-data/>; audit CSV: `source_audit_erddap_ioos_gliders.csv` | Run limited IOOS Glider DAC ingestion next and compare retained profiles/platforms. |
 | SECOORA glider ERDDAP | Search results show SECOORA glider datasets with Gulf/Gulf Stream tracks, depth, temperature, salinity, and QARTOD fields. | High for glider profile datasets; surface station datasets remain validation-only. | Discovery implemented in `source_audit.py`; 35 profile candidates found in a first-page audit. Direct parser smoke test added 51 final rows from `ioos-gliderdac-Murphy-20150809T1355`; `ioos-gliderdac-Murphy-20170426T1610` fetched 334 candidate profiles but did not survive downstream matching in this limited run. | SECOORA glider example: <https://erddap.secoora.org/erddap/tabledap/ioos-gliderdac-Murphy-20170426T1610.html>; audit CSV: `source_audit_erddap_secoora.csv` | Diagnose candidate-to-final-row attrition, then scale curated deployments incrementally. |
@@ -68,18 +84,19 @@ Direct-source audits now confirm three useful paths beyond the original XBT/glid
 
 7. **Limited ERDDAP ingestion is now implemented.** A two-dataset smoke test extracted 523 candidate ERDDAP glider profiles and retained 51 final training rows after MLD/QC/RTOFS feature checks. The one-shot grouped XGBoost benchmark after this run was MAE 9.897m and R² 0.466, but the held-out fold had only 35 rows and did not hold out the new ERDDAP platform, so repeated/grouped validation is still required before treating this as a generalization gain.
 
-8. **Argo GDAC index discovery found substantial GoM coverage.** Parsing `ar_index_global_prof.txt` for 2023-2024 inside the GoM bbox returned 5,393 profile-file entries, mostly from the AOML DAC. These are profile-file references, not yet counted as QC-valid MLD rows.
+8. **Argo GDAC index discovery found substantial GoM coverage.** Parsing `ar_index_global_prof.txt` for 2023-2024 inside the GoM bbox returned 5,393 profile-file entries, mostly from the AOML DAC. A 25-file diversified smoke test parsed 45 usable profile records and retained 32 final rows after observed-MLD and RTOFS feature checks.
 
 ## Recommended Next Audit Order
 
 | Priority | Candidate Source | Reason | Proposed Test |
 |---:|---|---|---|
 | 1 | IOOS Glider DAC / SECOORA glider ERDDAP | Confirmed candidate datasets with depth+temperature+profile_id; likely adds platform diversity. | Implement tabledap parser that groups rows by `dataset_id/profile_id`, computes observed MLD, and writes source-tagged rows. |
-| 2 | Argo GDAC direct | 5,393 GoM profile-file entries found in the 2023-2024 global profile index; best authoritative route for profiling floats and QC fields. | Download a small sampled set of matching NetCDF profile files, apply QC, then scale if yield is good. |
-| 3 | WOD `pfl` | Easier than direct GDAC if WOD yearly files have GoM floats. | Run WOD `pfl` bbox audit by year, but be careful about large file sizes. |
-| 4 | WOD `ctd` across broader years | High-quality profiles, but 2023/2024 GoM coverage looked sparse. | Run count-only scans across 2018-2024 if file sizes are manageable. |
-| 5 | WOD `mrb` / `drb` | Could provide buoy depth samples but 2023/2024 GoM audit yielded 0 usable rows. | Revisit only for broader year ranges or wider domains. |
-| 6 | NDBC/OceanSITES/TAO | Useful if domain expands, but not immediately GoM-focused. | Search for GoM-local timeSeriesProfile temperature stations. |
+| 2 | Historical/time-coincident RTOFS | Current 2026 local snapshots are temporally decoupled from the strongest 2023-2024 in-situ rows; NOAA public RTOFS S3 current-pattern keys only cover the sparse 2024 subset in this table. | Find a 2023 historical RTOFS archive path or choose a forward-collection/reanalysis fallback before model acceptance. |
+| 3 | Argo GDAC direct | 5,393 GoM profile-file entries found in the 2023-2024 global profile index; best authoritative route for profiling floats and QC fields. | Scale beyond the 25-file smoke test once time-coincident model matching is available. |
+| 4 | WOD `pfl` | Easier than direct GDAC if WOD yearly files have GoM floats. | Run WOD `pfl` bbox audit by year, but be careful about large file sizes. |
+| 5 | WOD `ctd` across broader years | High-quality profiles, but 2023/2024 GoM coverage looked sparse. | Run count-only scans across 2018-2024 if file sizes are manageable. |
+| 6 | WOD `mrb` / `drb` | Could provide buoy depth samples but 2023/2024 GoM audit yielded 0 usable rows. | Revisit only for broader year ranges or wider domains. |
+| 7 | NDBC/OceanSITES/TAO | Useful if domain expands, but not immediately GoM-focused. | Search for GoM-local timeSeriesProfile temperature stations. |
 
 ## Working Conclusion
 
