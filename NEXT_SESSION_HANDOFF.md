@@ -53,6 +53,13 @@
   - Cap2: 1,243 rows, 178 ERDDAP rows, LinearRegression mean MAE 7.715m, mean R² -0.017.
   - Cap3: 1,327 rows, 262 ERDDAP rows, LinearRegression mean MAE 7.647m, mean R² -0.050.
   - Interpretation: light ERDDAP use can keep R² barely positive, but none of the balanced variants beats the WOD-XBT + Argo baseline R² of 0.076.
+- Separate WOD+Argo candidate artifact:
+  - Artifact: `ML_baseline/model_wod_argo_rtofs_2024_2025_linear.pkl`
+  - Training report: `ML_baseline/train_ml_report_wod_argo_rtofs_2024_2025_linear.md`
+  - Model type: `LinearRegression`
+  - Data: `ML_baseline/training_data_combined_rtofs_2024_2025.csv`
+  - One grouped split result: MAE 8.939m, R² 0.267.
+  - Interpretation: promising candidate artifact for the best current same-day source mix, but still not a production freeze or replacement for `model.pkl`.
 
 ## Key Finding: 2023 WOD Density
 - The dense 2023 WOD block is not broad year-round density. It is mostly one glider deployment.
@@ -94,4 +101,5 @@
 - Use the completed WOD-XBT, Argo, and ERDDAP reports to decide whether to keep ERDDAP in the final same-day training mix or treat it as a separate glider-only diagnostic due to clustering.
 - Add/standardize a spatial coverage diagnostic for every same-day training CSV, ideally including unique RTOFS cells and not just half-degree cells.
 - Use Argo+WOD as the primary same-day prototype for now, and keep ERDDAP as a sidecar/diagnostic until validation can handle deployment clustering better.
+- If we want a next technical step, extend `train_ml.py` or a new trainer to save scaler/metadata consistently and evaluate repeated grouped splits before promoting any candidate artifact.
 - Keep the 2023 dense glider block parked until exact historical Global RTOFS access is found.

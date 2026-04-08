@@ -3,20 +3,66 @@ import pandas as pd
 import numpy as np
 import pickle
 import logging
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression
+from xgboost import XGBRegressor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+DEFAULT_DATA_PATH = "ML_baseline/training_data.csv"
+DEFAULT_MODEL_PATH = "ML_baseline/model.pkl"
+DEFAULT_REPORT_PATH = "ML_baseline/train_ml_report.md"
+
+
+def build_model(model_name: str):
+    if model_name == "linear":
+        return LinearRegression()
+    if model_name == "random_forest":
+        return RandomForestRegressor(n_estimators=200, random_state=42)
+    if model_name == "xgboost":
+        return XGBRegressor(n_estimators=200, max_depth=5, random_state=42, n_jobs=2)
+    return HistGradientBoostingRegressor(
+        max_iter=100,
+        learning_rate=0.1,
+        max_depth=5,
+        random_state=42,
+    )
+
+
+def write_report(report_path, data_path, model_name, out_file, df, train_idx, test_idx, groups, mae, r2):
+    with open(report_path, "w") as f:
+        f.write("# Train ML Report\n\n")
+        f.write(f"- Data path: `{data_path}`\n")
+        f.write(f"- Model type: `{model_name}`\n")
+        f.write(f"- Output artifact: `{out_file}`\n")
+        f.write(f"- Rows: {len(df)}\n")
+        f.write(f"- Platforms/groups: {groups.nunique()}\n")
+        f.write(f"- Train rows: {len(train_idx)}\n")
+        f.write(f"- Test rows: {len(test_idx)}\n")
+        f.write(f"- Test MAE: {mae:.3f}m\n")
+        f.write(f"- Test R²: {r2:.3f}\n")
+        if "source_family" in df.columns:
+            f.write(f"- Source families: {df['source_family'].value_counts().to_dict()}\n")
+        if "instrument" in df.columns:
+            f.write(f"- Instruments: {df['instrument'].value_counts().to_dict()}\n")
+        f.write("- This is a candidate artifact only; do not overwrite/freeze the production `model.pkl` from this run.\n")
+
 def train_model():
     logger.info("Loading training dataset...")
+    data_path = os.getenv("TRAIN_DATA_PATH", DEFAULT_DATA_PATH)
+    out_file = os.getenv("TRAIN_MODEL_OUTPUT", DEFAULT_MODEL_PATH)
+    report_path = os.getenv("TRAIN_REPORT_PATH", DEFAULT_REPORT_PATH)
+    model_name = os.getenv("TRAIN_MODEL_TYPE", "hist_gbm").strip().lower()
     try:
-        df = pd.read_csv("ML_baseline/training_data.csv")
+        df = pd.read_csv(data_path)
     except FileNotFoundError:
-        logger.error("training_data.csv not found! Run data_builder.py first.")
+        logger.error("%s not found! Run data builder first.", data_path)
         return
+
+    df = df.dropna(subset=["target_delta_mld", "observed_mld"]).copy()
         
     if len(df) < 10:
         logger.warning(f"Extremely sparse dataset ({len(df)} rows). Training may heavily overfit or fail.")
@@ -47,17 +93,9 @@ def train_model():
         test_platforms = df.iloc[test_idx]['platform_id'].nunique()
         logger.info(f"Split distribution -> Train: {len(X_train)} samples ({train_platforms} platforms), Test: {len(X_test)} samples ({test_platforms} platforms)")
     
-    # HistGradientBoostingRegressor is scikit-learn's answer to LightGBM.
-    # Tremendously fast and naturally handles missing values.
-    # It builds trees interpreting the non-linear relationship between SST fronts and MLD residuals.
-    model = HistGradientBoostingRegressor(
-        max_iter=100, 
-        learning_rate=0.1, 
-        max_depth=5, 
-        random_state=42
-    )
+    model = build_model(model_name)
     
-    logger.info("Fitting Gradient Boosted Trees...")
+    logger.info("Fitting model type: %s", model_name)
     model.fit(X_train, y_train)
     
     # Evaluate
@@ -73,10 +111,11 @@ def train_model():
     # but the evaluation metrics directly represent the proof of concept viability.
     
     # Save the artifact
-    out_file = "ML_baseline/model.pkl"
     with open(out_file, "wb") as f:
         pickle.dump(model, f)
     logger.info(f"Serialized optimal pipeline object to: {out_file}")
+    write_report(report_path, data_path, model_name, out_file, df, train_idx, test_idx, groups, mae, r2)
+    logger.info("Training report saved to: %s", report_path)
 
 if __name__ == "__main__":
     train_model()
