@@ -156,9 +156,23 @@ The 2023 WOD XBT rows are much smaller in raw count but more spatially efficient
 
 This suggests that future source expansion should optimize for unique RTOFS grid cells and platform diversity, not just total profile count.
 
+## 2024/2025 Same-Day Source Expansion
+
+After the WOD-XBT, Argo GDAC, and ERDDAP glider source passes, the clean same-day RTOFS prototype is much larger than the original 35-row smoke test, but clustering remains source dependent.
+
+| Dataset | Rows | Platforms | Dates | Unique 0.25° Obs Cells | Unique 0.5° Obs Cells | Unique 1.0° Obs Cells | Benchmark Signal |
+|---|---:|---:|---:|---:|---:|---:|---|
+| WOD-XBT 2024/2025 | 83 | 6 | 12 | 22 | 14 | 8 | RandomForest MAE 9.305m, mean R² -0.244 |
+| Argo GDAC top-40-date 2024/2025 | 982 | 42 | 40 | 302 | 172 | 78 | LinearRegression MAE 8.508m, mean R² 0.043 |
+| ERDDAP glider top-40-date 2024/2025 | 2,715 | 12 | 40 | 29 | 14 | 9 | LinearRegression MAE 3.927m, mean R² -0.196 |
+| WOD-XBT + Argo | 1,065 | 48 | 55 | 323 | 184 | 84 | LinearRegression MAE 8.509m, mean R² 0.076 |
+| WOD-XBT + Argo + ERDDAP | 3,780 | 60 | 92 | 346 | 192 | 90 | LinearRegression MAE 5.186m, mean R² -0.050 |
+
+The Argo source is the strongest spatial-diversity gain so far: it adds fewer rows than ERDDAP but many more half-degree cells. ERDDAP adds the most rows and lowers MAE on its own source family, but those rows occupy only 14 half-degree cells and remain deployment clustered. The all-source table therefore has more rows and more instruments, but it does not outperform the WOD-XBT + Argo prototype under grouped validation.
+
 ## Working Conclusion
 
-The in-situ observation blocker is real. For model acceptance, the dataset needs more than a higher row count. It needs more unique time-coincident RTOFS cells, more independent platforms, and better geographic spread across the Gulf.
+The in-situ observation blocker is real, but the bottleneck is now more nuanced than simple row count. For model acceptance, the dataset needs more than a higher row count. It needs more unique time-coincident RTOFS cells, more independent platforms, and better geographic spread across the Gulf.
 
 Recommended next actions:
 

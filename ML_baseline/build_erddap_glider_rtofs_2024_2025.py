@@ -35,6 +35,10 @@ GOM_BBOX = [-98.0, 18.0, -80.0, 31.0]
 MAX_OBSERVED_MLD_M = 100.0
 
 
+def is_valid_observed_mld(obs_mld: float | None) -> bool:
+    return obs_mld is not None and 10.0 <= obs_mld <= MAX_OBSERVED_MLD_M
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--start-time", default="2024-01-01T00:00:00Z")
@@ -81,7 +85,7 @@ def profile_records(profiles: list[ERDDAPGliderProfile]) -> pd.DataFrame:
                 "max_depth_m": round(float(max(profile.depth_m)), 3),
                 "observed_mld": round(obs_mld, 4) if obs_mld is not None else "",
                 "temp_mld_ref10": obs_mld is not None,
-                "temp_mld_ref10_under100m": obs_mld is not None and obs_mld <= MAX_OBSERVED_MLD_M,
+                "temp_mld_ref10_under100m": is_valid_observed_mld(obs_mld),
             }
         )
     return pd.DataFrame(records)
@@ -188,7 +192,10 @@ def write_report(
         f.write("## Summary\n")
         f.write(f"- ERDDAP dataset cap: {'all audited candidates' if max_datasets == 0 else max_datasets}\n")
         f.write(f"- ERDDAP profiles extracted after 10m/profile QC: {len(profile_df)}\n")
-        f.write(f"- Profiles with 10m temperature-threshold MLD <= {MAX_OBSERVED_MLD_M:.0f}m: {len(eligible)}\n")
+        f.write(
+            f"- Profiles with valid 10m temperature-threshold MLD "
+            f"(10-{MAX_OBSERVED_MLD_M:.0f}m): {len(eligible)}\n"
+        )
         f.write(f"- Eligible profiles with same-day public RTOFS S3 file: {len(rtofs_eligible)}\n")
         f.write(f"- Rows with RTOFS features extracted: {len(training_df)}\n")
         f.write(f"- RTOFS feature extraction skips: {skipped_no_features}\n")
@@ -207,7 +214,7 @@ def write_report(
             f.write(f"- Training platform counts: {top_counts(training_df['platform_id'])}\n")
 
         f.write("\n## By Year\n\n")
-        f.write("| Year | Extracted | MLD <=100m | Same-day RTOFS eligible | RTOFS feature rows |\n")
+        f.write("| Year | Extracted | Valid MLD 10-100m | Same-day RTOFS eligible | RTOFS feature rows |\n")
         f.write("| ---: | ---: | ---: | ---: | ---: |\n")
         for year in sorted(profile_df["obs_year"].unique()) if not profile_df.empty else []:
             year_profiles = profile_df[profile_df["obs_year"] == year]

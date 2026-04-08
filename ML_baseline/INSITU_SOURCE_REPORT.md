@@ -26,18 +26,10 @@ The 2024/2025 same-day Global RTOFS path has now moved beyond the 35-row smoke t
 | WOD XBT 2024/2025 | 138 GoM XBT profiles; 106 valid MLD<=100m labels | 83 rows | 6 platforms, 14 half-degree cells | RandomForest MAE 9.305m, mean R² -0.244 |
 | Argo GDAC 2024/2025 | 5,371 profile files; 10,165 usable 10m/profile-QC records; 9,177 valid MLD<=100m labels; 8,894 same-day RTOFS eligible | 982 rows from a bounded top-40-date RTOFS feature pass | 42 platforms, 172 half-degree cells | LinearRegression MAE 8.508m, mean R² 0.043 |
 | Combined WOD-XBT + Argo | WOD-XBT plus Argo top-40-date subset | 1,065 rows | 48 platforms, 55 dates | LinearRegression MAE 8.509m, mean R² 0.076 |
-| ERDDAP gliders | 108 audited candidate datasets selected by the tmux job | Running | TBD | TBD |
+| ERDDAP gliders | 18,485 profiles extracted after profile/10m QC; 13,518 valid 10m-reference MLD labels in the 10-100m range | 2,715 rows from a bounded top-40-date RTOFS feature pass | 12 platforms, 14 half-degree cells | LinearRegression MAE 3.927m, mean R² -0.196 |
+| Combined all sources | WOD-XBT + Argo + ERDDAP glider | 3,780 rows | 60 platforms, 92 dates, 192 half-degree cells | LinearRegression MAE 5.186m, mean R² -0.050 |
 
-The Argo result materially changes the Gulf-only viability picture. The bottleneck is no longer "only ~90 clean same-day rows" once direct Argo GDAC is scaled. However, the current best same-day RTOFS benchmark still has low positive R² and is Argo-dominated. It should be treated as the best prototype so far, not as production model-acceptance evidence.
-
-Active ERDDAP glider run:
-
-- `tmux` session: `mld_erddap_glider`
-- Log path: `ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log`
-- Builder: `ML_baseline/build_erddap_glider_rtofs_2024_2025.py`
-- Command: `--max-datasets 0 --max-rtofs-dates 40`
-- Scope: 2024-01-01 through 2025-12-31, GoM bbox, top 40 RTOFS-eligible dates for feature extraction.
-- Live progress when this report was updated: 18,485 ERDDAP glider profiles extracted after profile/10m QC; 4,377 profiles selected for the bounded top-40-date RTOFS feature pass; feature extraction had reached at least date 19/40.
+The Argo result materially changes the Gulf-only viability picture. The bottleneck is no longer "only ~90 clean same-day rows" once direct Argo GDAC and ERDDAP gliders are scaled. However, ERDDAP adds many repeated glider-track rows in only 14 half-degree cells, and the all-source grouped benchmark remains slightly negative in mean R². The best positive-R² same-day prototype is still the WOD-XBT + Argo combination, so none of these results should be used to freeze `model.pkl` yet.
 
 ## Current Dataset Snapshot
 

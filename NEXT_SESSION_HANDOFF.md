@@ -7,21 +7,14 @@
 ## Current Session Checkpoint: Same-Day RTOFS Prototypes
 - WOD XBT 2024/2025 same-day prototype is complete and committed in `8aebe15`.
 - Argo GDAC 2024/2025 same-day prototype is complete and committed in `ec7b4f5`.
-- ERDDAP glider 2024/2025 same-day prototype is currently running in tmux:
-  - Session: `mld_erddap_glider`
-  - Log: `ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log`
-  - Command: `/home/suramya/MLD-ML-Recomputation/mld-env/bin/python ML_baseline/build_erddap_glider_rtofs_2024_2025.py --max-datasets 0 --max-rtofs-dates 40`
-- Check tmux status with `tmux ls`.
-- Attach with `tmux attach -t mld_erddap_glider` if needed.
-- Follow the log with `tail -f ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log`.
-- Early log note: older Murphy/Bass deployments can return 404 under the 2024/2025 time-filtered ERDDAP query; do not interpret those as source-wide failure without checking later 2024/2025 glider deployments.
-- Live progress at documentation update:
-  - 108 ERDDAP candidates selected.
-  - 18,485 ERDDAP glider profiles extracted after profile/10m QC.
-  - 276 unique ERDDAP observation dates checked for same-day RTOFS availability.
-  - Top 40 RTOFS-eligible dates selected for feature extraction.
-  - 4,377 profiles selected for the bounded feature pass.
-  - The run had reached at least date 19/40 (`20241017`) in the log at this handoff update.
+- ERDDAP glider 2024/2025 same-day prototype finished in tmux and produced final artifacts:
+  - `ML_baseline/ERDDAP_GLIDER_RTOFS_2024_2025_REPORT.md`
+  - `ML_baseline/erddap_glider_2024_2025_profile_audit.csv`
+  - `ML_baseline/training_data_erddap_glider_rtofs_2024_2025.csv`
+  - `ML_baseline/benchmark_results_erddap_glider_rtofs_2024_2025.md`
+- The tmux session exited; `tmux ls` now reports no tmux server.
+- The raw tmux log is `ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log`; do not commit it unless we explicitly decide to keep raw run logs in git.
+- A rare invalid-label issue was caught after the first ERDDAP run: some noisy glider profiles produced MLD values shallower than the 10m reference. The ERDDAP builder now requires valid observed MLD in the 10-100m range, and the generated ERDDAP CSV/report were repaired accordingly.
 
 ## Same-Day RTOFS Data Results So Far
 - WOD XBT 2024/2025:
@@ -41,7 +34,19 @@
 - Combined WOD-XBT + Argo:
   - 1,065 rows across 48 platforms and 55 dates.
   - Benchmark: LinearRegression mean MAE 8.509m, mean R² 0.076.
-  - This is the best current same-day RTOFS prototype, but still do not freeze `model.pkl`.
+  - This remains the best positive-R² same-day RTOFS prototype, but still do not freeze `model.pkl`.
+- ERDDAP glider:
+  - 18,485 profiles extracted after profile/10m QC.
+  - 13,518 valid 10m-reference labels in the 10-100m range.
+  - Top-40-date bounded feature pass produced 2,715 rows.
+  - Coverage: 12 platforms, 14 half-degree cells.
+  - Benchmark: LinearRegression mean MAE 3.927m, mean R² -0.196.
+  - Interpretation: much more row volume, but strongly clustered by glider deployment.
+- Combined WOD-XBT + Argo + ERDDAP:
+  - 3,780 rows across 60 platforms and 92 dates.
+  - Coverage: 192 half-degree cells.
+  - Benchmark: LinearRegression mean MAE 5.186m, mean R² -0.050.
+  - Interpretation: more rows and broader source mix, but grouped generalization is still not stable enough for model acceptance.
 
 ## Key Finding: 2023 WOD Density
 - The dense 2023 WOD block is not broad year-round density. It is mostly one glider deployment.
@@ -80,8 +85,7 @@
 - This explains why some candidate sources are dense before QC but sparse afterward. Call this out next session before interpreting sparse final-row counts as raw source scarcity.
 
 ## Recommended Next Step
-- Let the `mld_erddap_glider` tmux job finish.
-- Inspect `ERDDAP_GLIDER_RTOFS_2024_2025_REPORT.md`, `erddap_glider_2024_2025_profile_audit.csv`, and `training_data_erddap_glider_rtofs_2024_2025.csv` if they were created.
-- If the glider job produced useful rows, benchmark it separately and then rebuild a combined same-day table with WOD-XBT + Argo + ERDDAP glider.
-- After the tmux run finishes, commit generated ERDDAP glider artifacts only after inspecting them. Avoid committing `ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log` unless we explicitly want run logs in git.
+- Use the completed WOD-XBT, Argo, and ERDDAP reports to decide whether to keep ERDDAP in the final same-day training mix or treat it as a separate glider-only diagnostic due to clustering.
+- Add/standardize a spatial coverage diagnostic for every same-day training CSV, ideally including unique RTOFS cells and not just half-degree cells.
+- Consider an Argo+WOD primary prototype and an ERDDAP glider sidecar prototype until validation can handle deployment clustering better.
 - Keep the 2023 dense glider block parked until exact historical Global RTOFS access is found.
