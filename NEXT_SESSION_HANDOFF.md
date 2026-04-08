@@ -60,6 +60,15 @@
   - Data: `ML_baseline/training_data_combined_rtofs_2024_2025.csv`
   - One grouped split result: MAE 8.939m, R² 0.267.
   - Interpretation: promising candidate artifact for the best current same-day source mix, but still not a production freeze or replacement for `model.pkl`.
+- Pipeline override sanity check:
+  - `mld_pipeline.py` now honors `ML_MODEL_PATH` so candidate artifacts can be tested without replacing `ML_baseline/model.pkl`.
+  - The stale `extract_ioos_profiles` import was fixed to use `extract_erddap_profiles`.
+  - Local no-network sanity check with `ML_MODEL_PATH=ML_baseline/model_wod_argo_rtofs_2024_2025_linear.pkl` returned:
+    - `model_mld=16.96m`
+    - `correction_applied=3.45m`
+    - `best_estimate_mld=20.42m`
+    - `confidence=High`
+  - This confirms the candidate artifact can be exercised in the inference path safely as an opt-in override.
 
 ## Key Finding: 2023 WOD Density
 - The dense 2023 WOD block is not broad year-round density. It is mostly one glider deployment.
@@ -102,4 +111,5 @@
 - Add/standardize a spatial coverage diagnostic for every same-day training CSV, ideally including unique RTOFS cells and not just half-degree cells.
 - Use Argo+WOD as the primary same-day prototype for now, and keep ERDDAP as a sidecar/diagnostic until validation can handle deployment clustering better.
 - If we want a next technical step, extend `train_ml.py` or a new trainer to save scaler/metadata consistently and evaluate repeated grouped splits before promoting any candidate artifact.
+- If we want the next product-facing step, make `api.py` and any deployment wrapper document/pass through `ML_MODEL_PATH` so we can switch candidate artifacts explicitly during testing.
 - Keep the 2023 dense glider block parked until exact historical Global RTOFS access is found.
