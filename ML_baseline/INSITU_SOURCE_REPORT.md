@@ -17,6 +17,28 @@ Direct-source audits now confirm three useful paths beyond the original XBT/glid
 
 The next modeling priority is therefore not just more in-situ rows. It is a time-coincident RTOFS audit: determine whether 2023-2024 or another high-overlap in-situ window can be paired to historical Global RTOFS fields at the same valid time. Until that is done, the current `training_data.csv` should be treated as a source-ingestion and feature-extraction smoke test rather than a production-ready correction-training set.
 
+## 2026-04-07 Update: Same-Day RTOFS Source Expansion
+
+The 2024/2025 same-day Global RTOFS path has now moved beyond the 35-row smoke test.
+
+| Source family | Audit result | Same-day RTOFS prototype | Coverage | Benchmark signal |
+|---|---:|---:|---|---|
+| WOD XBT 2024/2025 | 138 GoM XBT profiles; 106 valid MLD<=100m labels | 83 rows | 6 platforms, 14 half-degree cells | RandomForest MAE 9.305m, mean R² -0.244 |
+| Argo GDAC 2024/2025 | 5,371 profile files; 10,165 usable 10m/profile-QC records; 9,177 valid MLD<=100m labels; 8,894 same-day RTOFS eligible | 982 rows from a bounded top-40-date RTOFS feature pass | 42 platforms, 172 half-degree cells | LinearRegression MAE 8.508m, mean R² 0.043 |
+| Combined WOD-XBT + Argo | WOD-XBT plus Argo top-40-date subset | 1,065 rows | 48 platforms, 55 dates | LinearRegression MAE 8.509m, mean R² 0.076 |
+| ERDDAP gliders | 108 audited candidate datasets selected by the tmux job | Running | TBD | TBD |
+
+The Argo result materially changes the Gulf-only viability picture. The bottleneck is no longer "only ~90 clean same-day rows" once direct Argo GDAC is scaled. However, the current best same-day RTOFS benchmark still has low positive R² and is Argo-dominated. It should be treated as the best prototype so far, not as production model-acceptance evidence.
+
+Active ERDDAP glider run:
+
+- `tmux` session: `mld_erddap_glider`
+- Log path: `ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log`
+- Builder: `ML_baseline/build_erddap_glider_rtofs_2024_2025.py`
+- Command: `--max-datasets 0 --max-rtofs-dates 40`
+- Scope: 2024-01-01 through 2025-12-31, GoM bbox, top 40 RTOFS-eligible dates for feature extraction.
+- Live progress when this report was updated: 18,485 ERDDAP glider profiles extracted after profile/10m QC; 4,377 profiles selected for the bounded top-40-date RTOFS feature pass; feature extraction had reached at least date 19/40.
+
 ## Current Dataset Snapshot
 
 | Category | Current Count | Notes |

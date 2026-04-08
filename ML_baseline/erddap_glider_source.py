@@ -70,6 +70,8 @@ def _dataset_csvp_url(
     tabledap_url: str,
     bbox: list[float],
     depth_max_m: float,
+    start_time: str | None = None,
+    end_time: str | None = None,
 ) -> str:
     base = tabledap_url.replace(".html", ".csvp")
     query = (
@@ -81,6 +83,10 @@ def _dataset_csvp_url(
         "&depth>=0"
         f"&depth<={depth_max_m}"
     )
+    if start_time:
+        query += f"&time>={start_time}"
+    if end_time:
+        query += f"&time<={end_time}"
     return f"{base}?{urllib.parse.quote(query, safe=',&=><')}"
 
 
@@ -208,6 +214,8 @@ def extract_erddap_glider_profiles(
     audit_files: list[Path] | None = None,
     max_datasets: int = DEFAULT_MAX_DATASETS,
     depth_max_m: float = 1000.0,
+    start_time: str | None = None,
+    end_time: str | None = None,
 ) -> list[ERDDAPGliderProfile]:
     candidates = load_candidate_datasets(audit_files=audit_files, max_datasets=max_datasets)
     logger.info("ERDDAP glider candidates selected: %d", len(candidates))
@@ -219,7 +227,13 @@ def extract_erddap_glider_profiles(
         if not dataset_id or not tabledap_url:
             continue
 
-        url = _dataset_csvp_url(tabledap_url, bbox=bbox, depth_max_m=depth_max_m)
+        url = _dataset_csvp_url(
+            tabledap_url,
+            bbox=bbox,
+            depth_max_m=depth_max_m,
+            start_time=start_time,
+            end_time=end_time,
+        )
         try:
             text = _fetch_text(url)
         except Exception as exc:
