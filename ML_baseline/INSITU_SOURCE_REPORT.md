@@ -28,8 +28,11 @@ The 2024/2025 same-day Global RTOFS path has now moved beyond the 35-row smoke t
 | Combined WOD-XBT + Argo | WOD-XBT plus Argo top-40-date subset | 1,065 rows | 48 platforms, 55 dates | LinearRegression MAE 8.509m, mean R² 0.076 |
 | ERDDAP gliders | 18,485 profiles extracted after profile/10m QC; 13,518 valid 10m-reference MLD labels in the 10-100m range | 2,715 rows from a bounded top-40-date RTOFS feature pass | 12 platforms, 14 half-degree cells | LinearRegression MAE 3.927m, mean R² -0.196 |
 | Combined all sources | WOD-XBT + Argo + ERDDAP glider | 3,780 rows | 60 platforms, 92 dates, 192 half-degree cells | LinearRegression MAE 5.186m, mean R² -0.050 |
+| Balanced all sources, ERDDAP cap1 | WOD-XBT + Argo + ERDDAP capped to 1 row/platform/date/0.25-degree cell | 1,158 rows | 60 platforms, 92 dates, 192 half-degree cells | LinearRegression MAE 7.827m, mean R² 0.022 |
+| Balanced all sources, ERDDAP cap2 | WOD-XBT + Argo + ERDDAP capped to 2 rows/platform/date/0.25-degree cell | 1,243 rows | 60 platforms, 92 dates, 192 half-degree cells | LinearRegression MAE 7.715m, mean R² -0.017 |
+| Balanced all sources, ERDDAP cap3 | WOD-XBT + Argo + ERDDAP capped to 3 rows/platform/date/0.25-degree cell | 1,327 rows | 60 platforms, 92 dates, 192 half-degree cells | LinearRegression MAE 7.647m, mean R² -0.050 |
 
-The Argo result materially changes the Gulf-only viability picture. The bottleneck is no longer "only ~90 clean same-day rows" once direct Argo GDAC and ERDDAP gliders are scaled. However, ERDDAP adds many repeated glider-track rows in only 14 half-degree cells, and the all-source grouped benchmark remains slightly negative in mean R². The best positive-R² same-day prototype is still the WOD-XBT + Argo combination, so none of these results should be used to freeze `model.pkl` yet.
+The Argo result materially changes the Gulf-only viability picture. The bottleneck is no longer "only ~90 clean same-day rows" once direct Argo GDAC and ERDDAP gliders are scaled. However, ERDDAP adds many repeated glider-track rows in only 14 half-degree cells, and the all-source grouped benchmark remains slightly negative in mean R². The ERDDAP cap1 balanced variant stays barely positive, but it still does not beat the WOD-XBT + Argo benchmark. The best same-day prototype is still the WOD-XBT + Argo combination, so none of these results should be used to freeze `model.pkl` yet.
 
 ## Current Dataset Snapshot
 

@@ -167,8 +167,13 @@ After the WOD-XBT, Argo GDAC, and ERDDAP glider source passes, the clean same-da
 | ERDDAP glider top-40-date 2024/2025 | 2,715 | 12 | 40 | 29 | 14 | 9 | LinearRegression MAE 3.927m, mean R² -0.196 |
 | WOD-XBT + Argo | 1,065 | 48 | 55 | 323 | 184 | 84 | LinearRegression MAE 8.509m, mean R² 0.076 |
 | WOD-XBT + Argo + ERDDAP | 3,780 | 60 | 92 | 346 | 192 | 90 | LinearRegression MAE 5.186m, mean R² -0.050 |
+| WOD-XBT + Argo + ERDDAP cap1 | 1,158 | 60 | 92 | 346 | 192 | 90 | LinearRegression MAE 7.827m, mean R² 0.022 |
+| WOD-XBT + Argo + ERDDAP cap2 | 1,243 | 60 | 92 | 346 | 192 | 90 | LinearRegression MAE 7.715m, mean R² -0.017 |
+| WOD-XBT + Argo + ERDDAP cap3 | 1,327 | 60 | 92 | 346 | 192 | 90 | LinearRegression MAE 7.647m, mean R² -0.050 |
 
 The Argo source is the strongest spatial-diversity gain so far: it adds fewer rows than ERDDAP but many more half-degree cells. ERDDAP adds the most rows and lowers MAE on its own source family, but those rows occupy only 14 half-degree cells and remain deployment clustered. The all-source table therefore has more rows and more instruments, but it does not outperform the WOD-XBT + Argo prototype under grouped validation.
+
+The first ERDDAP balancing pass confirms the same pattern. Capping ERDDAP to 1 row per platform/date/0.25-degree cell keeps mean R² barely positive, but it still does not beat the Argo+WOD baseline. Increasing the ERDDAP cap lowers MAE slightly while pushing grouped R² back negative.
 
 ## Working Conclusion
 

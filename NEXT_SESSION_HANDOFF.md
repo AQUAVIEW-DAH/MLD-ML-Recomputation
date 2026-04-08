@@ -47,6 +47,12 @@
   - Coverage: 192 half-degree cells.
   - Benchmark: LinearRegression mean MAE 5.186m, mean R² -0.050.
   - Interpretation: more rows and broader source mix, but grouped generalization is still not stable enough for model acceptance.
+- Balanced ERDDAP variants:
+  - Cap rule: keep all WOD-XBT + Argo rows, then cap ERDDAP rows by platform/date/0.25-degree cell.
+  - Cap1: 1,158 rows, 93 ERDDAP rows, LinearRegression mean MAE 7.827m, mean R² 0.022.
+  - Cap2: 1,243 rows, 178 ERDDAP rows, LinearRegression mean MAE 7.715m, mean R² -0.017.
+  - Cap3: 1,327 rows, 262 ERDDAP rows, LinearRegression mean MAE 7.647m, mean R² -0.050.
+  - Interpretation: light ERDDAP use can keep R² barely positive, but none of the balanced variants beats the WOD-XBT + Argo baseline R² of 0.076.
 
 ## Key Finding: 2023 WOD Density
 - The dense 2023 WOD block is not broad year-round density. It is mostly one glider deployment.
@@ -87,5 +93,5 @@
 ## Recommended Next Step
 - Use the completed WOD-XBT, Argo, and ERDDAP reports to decide whether to keep ERDDAP in the final same-day training mix or treat it as a separate glider-only diagnostic due to clustering.
 - Add/standardize a spatial coverage diagnostic for every same-day training CSV, ideally including unique RTOFS cells and not just half-degree cells.
-- Consider an Argo+WOD primary prototype and an ERDDAP glider sidecar prototype until validation can handle deployment clustering better.
+- Use Argo+WOD as the primary same-day prototype for now, and keep ERDDAP as a sidecar/diagnostic until validation can handle deployment clustering better.
 - Keep the 2023 dense glider block parked until exact historical Global RTOFS access is found.
