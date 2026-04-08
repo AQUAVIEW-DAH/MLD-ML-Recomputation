@@ -235,7 +235,9 @@ def extract_argo_gdac_profiles(
     all_profiles: list[ArgoGDACProfile] = []
     skipped_download = 0
     skipped_parse = 0
-    for source_file in files:
+    for index, source_file in enumerate(files, start=1):
+        if index == 1 or index % 250 == 0 or index == len(files):
+            logger.info("Argo GDAC fetch/parse progress: %d/%d files", index, len(files))
         local_path = ARGO_CACHE_DIR / source_file
         url = f"{ARGO_GDAC_BASE}/{source_file}"
         try:
