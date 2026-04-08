@@ -9,3 +9,15 @@ node_modules/
 
 # Large local data artifacts
 *.nc
+
+# Local run/session artifacts
+*.pid
+*handoff*
+*session*
+
+# Broad exploratory crawls; keep curated source audit CSVs instead.
+ML_baseline/source_audit_erddap_gliders.csv
+
+# Superseded/scratch logs; keep the current main pipeline log trackable.
+ML_baseline/data_builder_run.log
+ML_baseline/pipeline_v2.log

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import logging
 from dataclasses import dataclass
 from typing import Any, List, Optional
@@ -11,12 +12,13 @@ from mld_core import get_model_mld, compute_mld_temp_threshold
 from aquaview_obs import (
     AquaviewClient, 
     search_with_primary_fallback, 
-    extract_ioos_profiles,
+    extract_erddap_profiles,
     extract_gadr_profiles,
     ObservationProfile
 )
 
 logger = logging.getLogger(__name__)
+DEFAULT_ML_MODEL_PATH = "ML_baseline/model.pkl"
 
 def haversine(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     """Calculate great-circle distance between two points on Earth in km."""
@@ -103,7 +105,7 @@ def get_mld_estimate(
         collection = item.get("collection", "")
         if "ioos" in collection.lower():
             try:
-                profiles = extract_ioos_profiles(item, bbox, start_time, end_time)
+                profiles = extract_erddap_profiles(item, bbox, start_time, end_time)
                 for p in profiles:
                     obs_mld = compute_mld_temp_threshold(p.depth_m, p.temperature_c)
                     if obs_mld is not None:
@@ -127,19 +129,18 @@ def get_mld_estimate(
                 logger.warning(f"Failed to extract profiles from GADR {item.get('id')}: {e}")
 
     # 4. Blend Model and Observations (The 'Intelligence' layer MVP)
-    import os
     import pickle
-    import numpy as np
+    import pandas as pd
     from ML_baseline.features import extract_ml_features
     
     correction = 0.0
     confidence = "Low"
+    ml_model_path = os.getenv("ML_MODEL_PATH", DEFAULT_ML_MODEL_PATH)
     
     # Check for Machine Learning Engine
-    if os.path.exists("ML_baseline/model.pkl"):
+    if os.path.exists(ml_model_path):
         try:
-            import pandas as pd
-            with open("ML_baseline/model.pkl", "rb") as f:
+            with open(ml_model_path, "rb") as f:
                 model = pickle.load(f)
                 
             features = extract_ml_features(rtofs_ds, lat, lon)
@@ -155,7 +156,7 @@ def get_mld_estimate(
                 correction = float(model.predict(X)[0])
                 confidence = "High"
         except Exception as e:
-            logger.error(f"Failed to apply ML model: {e}")
+            logger.error("Failed to apply ML model from %s: %s", ml_model_path, e)
             
     # Apply Correction
     best_estimate = base_mld + correction
