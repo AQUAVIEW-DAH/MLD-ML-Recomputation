@@ -27,6 +27,12 @@ logger = logging.getLogger(__name__)
 
 # ---- configuration --------------------------------------------------------
 WOD_S3_BASE = "https://noaa-wod-pds.s3.amazonaws.com"
+WOD_THREDDS_BASES = (
+    "https://www.ncei.noaa.gov/thredds-ocean/fileServer/ncei/wod",
+    "https://www.ncei.noaa.gov/thredds/fileServer/ncei/wod",
+    "https://www.ncei.noaa.gov/thredds-ocean/fileServer/wod",
+    "https://www.ncei.noaa.gov/thredds/fileServer/wod",
+)
 WOD_CACHE_DIR = Path("/data/suramya/wod_cache")
 
 # Instrument codes and their expected GoM yield
@@ -66,6 +72,17 @@ def _wod_url(year: int, instrument: str) -> str:
     return f"{WOD_S3_BASE}/{year}/wod_{instrument}_{year}.nc"
 
 
+def _wod_thredds_urls(year: int, instrument: str) -> tuple[str, ...]:
+    filename = f"wod_{instrument}_{year}.nc"
+    return tuple(f"{base}/{year}/{filename}" for base in WOD_THREDDS_BASES)
+
+
+def _download_url(url: str, timeout: float = 300.0) -> bytes:
+    req = urllib.request.Request(url)
+    with urllib.request.urlopen(req, timeout=timeout, context=ssl_ctx) as resp:
+        return resp.read()
+
+
 def download_wod_file(year: int, instrument: str) -> Path:
     """Download a WOD NetCDF file from S3, caching locally."""
     WOD_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -75,17 +92,26 @@ def download_wod_file(year: int, instrument: str) -> Path:
         logger.info("Using cached %s (%d MB)", local_path.name, local_path.stat().st_size // 1_000_000)
         return local_path
 
-    url = _wod_url(year, instrument)
-    logger.info("Downloading %s ...", url)
+    urls = (_wod_url(year, instrument),) + _wod_thredds_urls(year, instrument)
+    errors: list[str] = []
+    data: bytes | None = None
+    for url in urls:
+        logger.info("Downloading %s ...", url)
+        try:
+            data = _download_url(url)
+            logger.info("Downloaded WOD %s %d from %s", instrument.upper(), year, url)
+            break
+        except urllib.error.HTTPError as e:
+            errors.append(f"{url} -> HTTP {e.code}")
+            if e.code != 404:
+                raise
+        except urllib.error.URLError as e:
+            errors.append(f"{url} -> {e}")
 
-    req = urllib.request.Request(url)
-    try:
-        with urllib.request.urlopen(req, timeout=300, context=ssl_ctx) as resp:
-            data = resp.read()
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            raise FileNotFoundError(f"WOD file not available: {url}") from e
-        raise
+    if data is None:
+        raise FileNotFoundError(
+            f"WOD file not available for {instrument} {year}. Tried: {'; '.join(errors)}"
+        )
 
     local_path.write_bytes(data)
     logger.info("Saved %s (%d MB)", local_path.name, len(data) // 1_000_000)
