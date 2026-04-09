@@ -98,6 +98,32 @@
   - This is the best current artifact for a frozen historical replay app mode.
   - Treat it as the prototype model for a Jul-Aug 2025 sandbox, not as a live 2026 operational model.
 
+
+## Historical Replay App Wiring
+- The app/backend are now wired for historical replay mode instead of pretending to be a live 2026 product.
+- Backend changes:
+  - `api.py` now defaults to `APP_MODE=historical_replay`.
+  - Replay mode loads `ML_baseline/training_data_holdout_historical_replay_2025_jul_aug.csv` for local provenance observations.
+  - Replay mode resolves per-date RTOFS files from `/data/suramya/rtofs_time_matched/rtofs.YYYYMMDD/rtofs_glo_3dz_f006_6hrly_hvr_US_east.nc`.
+  - Replay mode defaults `ML_MODEL_PATH` to `ML_baseline/model_historical_replay_2025_jul_aug.pkl` unless explicitly overridden.
+  - Added `/metadata` endpoint so the frontend can discover replay dates and sandbox settings.
+- Pipeline changes:
+  - `mld_pipeline.py` now accepts local replay observations directly and returns real observation coordinates in the API payload.
+  - Replay mode does not depend on Aquaview for provenance lookup.
+  - Confidence now reflects whether the ML model loaded and whether nearby replay observations were found.
+- Frontend changes:
+  - `mld-dashboard/src/App.jsx` now presents a historical replay sandbox UI.
+  - Users choose a replay date from the available Jul-Aug 2025 dates.
+  - The frontend queries `/metadata` and `/mld` via a configurable `VITE_API_BASE` with fallback `http://127.0.0.1:8000`.
+  - Replay observations are rendered at their true coordinates instead of fake map offsets.
+- App sanity checks:
+  - Backend replay query succeeded for `2025-07-07T12:00:00Z` using `/data/suramya/rtofs_time_matched/rtofs.20250707/rtofs_glo_3dz_f006_6hrly_hvr_US_east.nc`.
+  - Replay query returned `model_mld=12.09m`, `correction_applied=6.22m`, `best_estimate_mld=18.31m`, `confidence=Medium`, with 2 nearby replay observations.
+  - `npm run build` succeeded for the historical replay dashboard.
+- Interpretation:
+  - The prototype app is now aligned with the frozen Jul-Aug 2025 sandbox model and data path.
+  - The app still needs a final product pass and commit/push for the replay wiring itself.
+
 ## Key Finding: 2023 WOD Density
 - The dense 2023 WOD block is not broad year-round density. It is mostly one glider deployment.
 - Current WOD rows in `ML_baseline/training_data.csv`: 1,150.
@@ -139,5 +165,5 @@
 - Add/standardize a spatial coverage diagnostic for every same-day training CSV, ideally including unique RTOFS cells and not just half-degree cells.
 - Use Argo+WOD as the primary same-day prototype for now, and keep ERDDAP as a sidecar/diagnostic until validation can handle deployment clustering better.
 - If we want a next technical step, extend `train_ml.py` or a new trainer to save scaler/metadata consistently and evaluate repeated grouped splits before promoting any candidate artifact.
-- If we want the next product-facing step, add a historical replay app mode that loads `ML_baseline/model_historical_replay_2025_jul_aug.pkl` and constrains queries to the Jul-Aug 2025 sandbox window.
+- Next product-facing step: polish and commit the historical replay app mode that already loads `ML_baseline/model_historical_replay_2025_jul_aug.pkl` and constrains queries to the Jul-Aug 2025 sandbox window.
 - Keep the 2023 dense glider block parked until exact historical Global RTOFS access is found.

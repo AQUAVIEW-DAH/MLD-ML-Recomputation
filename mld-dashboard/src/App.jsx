@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { Waves, Activity, MapPin, Search, Layers, Clock, ShieldAlert } from 'lucide-react';
 import './index.css';
 
-// Fix typical Leaflet icon issue in React
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -12,14 +11,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom icons
 const targetIcon = new L.Icon({
   iconUrl: 'https://cdn.rawgit.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 const obsIcon = new L.Icon({
@@ -28,50 +26,79 @@ const obsIcon = new L.Icon({
   iconSize: [20, 32],
   iconAnchor: [10, 32],
   popupAnchor: [1, -34],
-  shadowSize: [32, 32]
+  shadowSize: [32, 32],
 });
 
-function MapEventsHandler({ onLocationSelect }) {
+function MapEventsHandler({ onLocationSelect, ready }) {
   useMapEvents({
     click(e) {
-      onLocationSelect(e.latlng);
+      if (ready) {
+        onLocationSelect(e.latlng);
+      }
     },
   });
   return null;
 }
 
+const API_BASE = import.meta.env.VITE_API_BASE || '';
+
 function App() {
+  const [metadata, setMetadata] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
   const [targetPos, setTargetPos] = useState(null);
   const [loading, setLoading] = useState(false);
   const [mldData, setMldData] = useState(null);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/metadata`);
+        if (!response.ok) {
+          throw new Error(`Metadata returned ${response.status}`);
+        }
+        const data = await response.json();
+        setMetadata(data);
+        if (data.default_query_time) {
+          setSelectedDate(data.default_query_time.slice(0, 10));
+        } else if (data.available_dates?.length) {
+          setSelectedDate(data.available_dates[data.available_dates.length - 1]);
+        }
+      } catch (err) {
+        console.error(err);
+        setError(`Failed to load replay metadata${API_BASE ? ` from ${API_BASE}` : ''}: ${err.message}`);
+      }
+    };
+    loadMetadata();
+  }, []);
+
   const fetchMLD = async (latlng) => {
+    if (!selectedDate) {
+      setError('Choose a replay date before querying the map.');
+      return;
+    }
+
     setLoading(true);
     setTargetPos(latlng);
     setError(null);
     setMldData(null);
-    
+
     try {
-      // Hardcode time to the valid RTOFS local slice we know works for demo purposes
-      const timeStr = "2026-04-01T06:00:00.000000000";
-      
-      const response = await fetch('http://127.0.0.1:8000/mld', {
+      const timeStr = `${selectedDate}T12:00:00Z`;
+      const response = await fetch(`${API_BASE}/mld`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lat: latlng.lat,
           lon: latlng.lng,
-          time: timeStr
+          time: timeStr,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`API returned ${response.status}: ${await response.text()}`);
       }
-      
+
       const data = await response.json();
       setMldData(data);
     } catch (err) {
@@ -82,34 +109,78 @@ function App() {
     }
   };
 
-  const currentCenter = [28.0, -89.0]; // Gulf of Mexico
+  const currentCenter = [28.0, -89.0];
+  const replayReady = Boolean(metadata && selectedDate);
 
   return (
     <div className="app-container">
-      {/* Sidebar Panel */}
       <div className="sidebar">
         <div className="header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <Waves size={28} color="var(--accent-cyan)" />
-            <h1 className="title">AQUAVIEW</h1>
+            <h1 className="title">MLD Replay</h1>
           </div>
-          <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '0.25rem' }}>MLD Intelligence</h2>
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '0.25rem' }}>Historical Sandbox</h2>
           <p className="subtitle">
-            Hybrid Mix Layer Depth Estimation merging model physics with real-time observation telemetry.
+            Frozen Jul-Aug 2025 replay using same-day RTOFS files, the historical replay model, and local holdout observations for provenance.
           </p>
         </div>
+
+        {metadata && (
+          <div className="card">
+            <h3 style={{ marginBottom: '1rem' }}>Replay Controls</h3>
+            <div className="stat-grid">
+              <div className="stat-item">
+                <span className="stat-label">Mode</span>
+                <span className="stat-value" style={{ fontSize: '1rem' }}>{metadata.mode}</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Available Dates</span>
+                <span className="stat-value" style={{ fontSize: '1rem' }}>{metadata.available_date_count}</span>
+              </div>
+            </div>
+            <div style={{ marginTop: '1rem' }}>
+              <label className="stat-label" htmlFor="replay-date">Replay Date</label>
+              <select
+                id="replay-date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{
+                  marginTop: '0.5rem',
+                  width: '100%',
+                  padding: '0.75rem',
+                  borderRadius: '10px',
+                  background: 'rgba(15, 23, 42, 0.85)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
+                {metadata.available_dates?.map((date) => (
+                  <option key={date} value={date}>{date}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Support window: {metadata.support_radius_km} km / {metadata.support_window_hr} hr
+            </div>
+          </div>
+        )}
 
         {!targetPos && !loading && (
           <div className="instructions">
             <MapPin size={48} />
-            <p>Click anywhere in the Gulf of Mexico to generate an intelligent MLD estimate.</p>
+            <p>
+              {replayReady
+                ? 'Choose a replay date, then click anywhere in the Gulf of Mexico to query the historical sandbox.'
+                : 'Loading replay metadata and date controls...'}
+            </p>
           </div>
         )}
 
         {loading && (
           <div className="instructions">
             <div className="loading-spinner"></div>
-            <p>Fusing RTOFS Model with Aquaview Observations...</p>
+            <p>Querying historical replay sandbox...</p>
           </div>
         )}
 
@@ -125,35 +196,33 @@ function App() {
 
         {mldData && !loading && (
           <div className="results-container">
-            {/* Primary Result Card */}
             <div className="card">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <Activity size={20} color="var(--accent-cyan)" />
                 Best Estimate
               </h3>
-              
+
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <span style={{ fontSize: '3.5rem', fontWeight: '800', lineHeight: 1, letterSpacing: '-0.02em', background: 'linear-gradient(to right, #fff, #a5b4fc)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   {mldData.best_estimate_mld.toFixed(1)}
                 </span>
                 <span style={{ color: 'var(--text-secondary)', fontSize: '1.2rem' }}>meters</span>
               </div>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem', marginTop: '1rem' }}>
                 <span className="stat-label">Confidence</span>
                 <span className={`badge badge-${mldData.confidence.toLowerCase()}`}>
-                  {mldData.confidence} Level
+                  {mldData.confidence}
                 </span>
               </div>
             </div>
 
-            {/* Provenance Card */}
             <div className="card">
               <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <Layers size={20} color="var(--accent-purple)" />
-                Data Provenance
+                Provenance
               </h3>
-              
+
               <div className="stat-grid">
                 <div className="stat-item">
                   <span className="stat-label">Model (RTOFS)</span>
@@ -166,88 +235,77 @@ function App() {
                   </span>
                 </div>
               </div>
-              
+
+              <div style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Replay date: {selectedDate} | Observation mode: {mldData.window_used}
+              </div>
+
               <div style={{ marginTop: '1.5rem' }}>
                 <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Search size={14} /> 
-                  {mldData.nearby_observations.length} Observations Used
+                  <Search size={14} />
+                  {mldData.nearby_observations.length} Replay Observations Nearby
                 </span>
-                
-                {mldData.nearby_observations.length > 0 ? (
-                  <div className="obs-list">
-                    {mldData.nearby_observations.map((obs, idx) => (
-                      <div className={`obs-item ${obs.source.toLowerCase()}`} key={idx}>
-                        <div className="obs-info">
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{obs.source} Platform</span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <Clock size={10} /> {new Date(obs.obs_time).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ display: 'block', fontWeight: 600 }}>{obs.mld_m.toFixed(1)}m</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{obs.distance_km}km awy</span>
-                        </div>
-                      </div>
-                    ))}
+                {mldData.nearby_observations.slice(0, 5).map((obs, idx) => (
+                  <div key={idx} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: '10px',
+                    padding: '0.75rem',
+                    marginTop: '0.5rem',
+                    fontSize: '0.85rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                      <span style={{ color: 'var(--text-primary)' }}>{obs.source}</span>
+                      <span style={{ color: 'var(--accent-cyan)' }}>{obs.mld_m.toFixed(1)}m</span>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)' }}>
+                      {obs.distance_km.toFixed(1)} km away | {obs.obs_time}
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                    No observations found within spatial radius. Estimate relies purely on internal model simulation.
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
         )}
       </div>
 
-      {/* Map Interactive Area */}
       <div className="map-container">
-        <MapContainer 
-          center={currentCenter} 
-          zoom={6} 
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={false}
-        >
-          {/* Base Map using a sleek dark theme */}
+        <MapContainer center={currentCenter} zoom={6} style={{ height: '100%', width: '100%' }}>
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          <MapEventsHandler onLocationSelect={fetchMLD} />
+          <MapEventsHandler onLocationSelect={fetchMLD} ready={replayReady} />
 
-          {/* Render Target Click Location */}
           {targetPos && (
             <Marker position={targetPos} icon={targetIcon}>
-              <Popup autoPan={false}>
-                <b>Query Anchor</b><br />
-                {targetPos.lat.toFixed(4)}, {targetPos.lng.toFixed(4)}
+              <Popup>
+                Query Point<br />
+                Lat: {targetPos.lat.toFixed(4)}<br />
+                Lon: {targetPos.lng.toFixed(4)}
               </Popup>
             </Marker>
           )}
 
-          {/* Render Actual Real-time Nearby Observations if present */}
-          {mldData && mldData.nearby_observations.map((obs, idx) => {
-            // Find lat/lon offset to approximate their location visually since 
-            // our API currently didn't return lat/lon specifically for frontend items.
-            // In a full implementation we'd pass back precise obs coordinates.
-            // Doing a minor visual offset based on distance_km.
-            const roughOffset = obs.distance_km / 111.0; 
-            return (
-              <Marker 
-                key={idx} 
-                position={[mldData.query_lat + (roughOffset * (idx%2==0?1:-1)), mldData.query_lon + (roughOffset * (idx%2==0?1:-1))]} 
-                icon={obsIcon}
-              >
+          {mldData?.nearby_observations?.map((obs, idx) => (
+            obs.lat != null && obs.lon != null ? (
+              <Marker key={idx} position={[obs.lat, obs.lon]} icon={obsIcon}>
                 <Popup>
-                  <b>{obs.source} Observation</b><br />
-                  Measured MLD: {obs.mld_m.toFixed(1)}m<br />
-                  Distance: {obs.distance_km}km
+                  <strong>{obs.source}</strong><br />
+                  Platform: {obs.platform_id || 'unknown'}<br />
+                  Observed MLD: {obs.mld_m.toFixed(1)}m<br />
+                  Distance: {obs.distance_km.toFixed(1)} km<br />
+                  Time: {obs.obs_time}
                 </Popup>
               </Marker>
-            );
-          })}
+            ) : null
+          ))}
         </MapContainer>
+
+        <div className="map-overlay top-left">
+          <Clock size={16} />
+          <span>{selectedDate || 'Loading date...'}</span>
+        </div>
       </div>
     </div>
   );
