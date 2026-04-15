@@ -10,6 +10,7 @@ export default defineConfig({
       '/metadata': 'http://127.0.0.1:8001',
       '/mld': 'http://127.0.0.1:8001',
       '/health': 'http://127.0.0.1:8001',
+      '/map_layer': 'http://127.0.0.1:8001',
     },
   },
 })
