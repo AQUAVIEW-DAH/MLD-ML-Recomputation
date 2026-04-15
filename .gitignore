@@ -6,18 +6,21 @@ __pycache__/
 # Local environments and dependencies
 mld-env/
 node_modules/
+mld-dashboard/node_modules/
+mld-dashboard/dist/
 
 # Large local data artifacts
 *.nc
 
 # Local run/session artifacts
 *.pid
+*.log
 *handoff*
 *session*
 
 # Broad exploratory crawls; keep curated source audit CSVs instead.
 ML_baseline/source_audit_erddap_gliders.csv
 
-# Superseded/scratch logs; keep the current main pipeline log trackable.
+# Superseded/scratch logs; older tracked logs stay in history, new logs stay local.
 ML_baseline/data_builder_run.log
 ML_baseline/pipeline_v2.log
