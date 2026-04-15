@@ -98,10 +98,3 @@ See `docs/insitu_requirements.md` for details.
 - The replay model is prototype-ready for the app, not production accepted.
 - The current repo layout still preserves several research artifacts so the analysis trail remains auditable.
 
-## Next Cleanup Step
-
-Once this documentation layer is settled, the recommended next pass is:
-
-1. Move runtime code into `app/` if we want root-level Python files fully packaged.
-2. Add a small CLI or Makefile for common app/training commands.
-3. Decide whether large CSV/model artifacts should eventually move to external storage or Git LFS.
