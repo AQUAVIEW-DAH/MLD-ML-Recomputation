@@ -21,6 +21,7 @@ const targetIcon = new L.Icon({
 });
 
 const API_BASE = import.meta.env.VITE_API_BASE || '';
+const FETCH_HEADERS = { 'ngrok-skip-browser-warning': 'true' };
 const currentCenter = [28.0, -89.0];
 const OBS_LEGEND_BINS = [
   { label: '< 15 m', max: 15, color: '#22d3ee' },
@@ -122,7 +123,7 @@ function App() {
   useEffect(() => {
     const loadMetadata = async () => {
       try {
-        const response = await fetch(`${API_BASE}/metadata`);
+        const response = await fetch(`${API_BASE}/metadata`, { headers: FETCH_HEADERS });
         if (!response.ok) {
           throw new Error(`Metadata returned ${response.status}`);
         }
@@ -151,7 +152,7 @@ function App() {
       setModelLayerError(null);
       try {
         const timeStr = `${selectedDate}T12:00:00Z`;
-        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=model_mld&stride=12`);
+        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=model_mld&stride=12`, { headers: FETCH_HEADERS });
         if (!response.ok) {
           throw new Error(`Layer returned ${response.status}`);
         }
@@ -178,7 +179,7 @@ function App() {
       setCorrectionLayerError(null);
       try {
         const timeStr = `${selectedDate}T12:00:00Z`;
-        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=correction&stride=12`);
+        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=correction&stride=12`, { headers: FETCH_HEADERS });
         if (!response.ok) {
           throw new Error(`Correction layer returned ${response.status}`);
         }
@@ -205,7 +206,7 @@ function App() {
       setCorrectedFieldError(null);
       try {
         const timeStr = `${selectedDate}T12:00:00Z`;
-        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=corrected_mld&stride=12`);
+        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=corrected_mld&stride=12`, { headers: FETCH_HEADERS });
         if (!response.ok) {
           throw new Error(`Corrected field returned ${response.status}`);
         }
@@ -232,7 +233,7 @@ function App() {
       setAllObservationsError(null);
       try {
         const timeStr = `${selectedDate}T12:00:00Z`;
-        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=observations&stride=12`);
+        const response = await fetch(`${API_BASE}/map_layer?time=${encodeURIComponent(timeStr)}&layer=observations&stride=12`, { headers: FETCH_HEADERS });
         if (!response.ok) {
           throw new Error(`Observation layer returned ${response.status}`);
         }
@@ -264,7 +265,7 @@ function App() {
       const timeStr = `${selectedDate}T12:00:00Z`;
       const response = await fetch(`${API_BASE}/mld`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...FETCH_HEADERS },
         body: JSON.stringify({
           lat: latlng.lat,
           lon: latlng.lng,
@@ -489,6 +490,34 @@ function App() {
                 Replay date: {selectedDate} | Observation mode: {mldData.window_used}
               </div>
 
+              <div style={{ marginTop: '1.5rem' }}>
+                <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Search size={14} />
+                  {colorCodedObservations.length} Replay Observations Nearby
+                </span>
+                {colorCodedObservations.slice(0, 5).map((obs, idx) => (
+                  <div
+                    key={idx}
+                    className="obs-swatch-card"
+                    style={{ borderLeftColor: obs.color }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span className="obs-legend-dot" style={{ background: obs.color }} />
+                        <span style={{ color: 'var(--text-primary)' }}>{obs.source}</span>
+                      </div>
+                      <span style={{ color: obs.color, fontWeight: 700 }}>{obs.mld_m.toFixed(1)}m</span>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                      Range: {obs.rangeLabel} | {obs.distance_km.toFixed(1)} km away
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+                      {formatObservationTime(obs.obs_time)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <div className="obs-legend-card">
                 <span className="stat-label">Observation MLD Color Ramp</span>
                 <div className="obs-legend-grid">
@@ -542,34 +571,6 @@ function App() {
                   </div>
                 </div>
               )}
-
-              <div style={{ marginTop: '1.5rem' }}>
-                <span className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Search size={14} />
-                  {colorCodedObservations.length} Replay Observations Nearby
-                </span>
-                {colorCodedObservations.slice(0, 5).map((obs, idx) => (
-                  <div
-                    key={idx}
-                    className="obs-swatch-card"
-                    style={{ borderLeftColor: obs.color }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem', gap: '0.75rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span className="obs-legend-dot" style={{ background: obs.color }} />
-                        <span style={{ color: 'var(--text-primary)' }}>{obs.source}</span>
-                      </div>
-                      <span style={{ color: obs.color, fontWeight: 700 }}>{obs.mld_m.toFixed(1)}m</span>
-                    </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                      Range: {obs.rangeLabel} | {obs.distance_km.toFixed(1)} km away
-                    </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
-                      {formatObservationTime(obs.obs_time)}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         )}

@@ -3,7 +3,7 @@ set -euo pipefail
 
 API_URL="${NGROK_API_URL:-http://127.0.0.1:4040/api/tunnels}"
 
-python - <<'PY'
+python3 - <<'PY'
 import json
 import os
 import sys

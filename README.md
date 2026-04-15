@@ -4,12 +4,14 @@ This repository contains a prototype for machine-learning-corrected mixed layer 
 
 The current app is intentionally a **historical replay sandbox**, not a live 2026 operational service. It replays a dense Jul-Aug 2025 holdout window where same-day RTOFS model fields and in-situ profile observations are available, then demonstrates the product loop: query a point, correct the model estimate, show confidence, and explain provenance.
 
+![Replay app screenshot](docs/replay_screenshot.png)
+
 ## Current Prototype
 
 - **Mode:** historical replay sandbox
 - **Replay window:** 2025-07-07 to 2025-08-31
-- **Training data:** same-day RTOFS + WOD/Argo rows before 2025-07-07
-- **Holdout data:** Jul-Aug 2025 Argo rows excluded from training
+- **Training data:** same-day RTOFS + WOD/Argo rows before 2025-07-07 (796 rows, 48 platforms)
+- **Holdout data:** Jul-Aug 2025 Argo rows excluded from training (269 rows, 21 platforms)
 - **Frozen replay model:** `artifacts/models/model_historical_replay_2025_jul_aug.pkl`
 - **Raw RTOFS holdout:** MAE 7.112m, RMSE 9.274m, R2 -0.003
 - **Corrected replay holdout:** MAE 6.431m, RMSE 8.355m, R2 0.186
@@ -37,9 +39,11 @@ The original product idea was a live AQUAVIEW-style endpoint that combines model
 - The holdout window was excluded from model training.
 - The app can demonstrate the intended user experience without pretending to be operationally live.
 
-See `docs/historical_sandbox.md` for the full rationale. For no-public-IP deployment, see `docs/ngrok_deployment.md`.
+See `docs/historical_sandbox.md` for the full rationale.
 
 ## Run The Replay App
+
+### Local development
 
 From the repo root:
 
@@ -48,13 +52,102 @@ From the repo root:
 ./scripts/check_replay_health.sh
 ```
 
-Then open:
+Then open `http://127.0.0.1:5174/`. The backend runs on `127.0.0.1:8001`; the Vite frontend runs on `127.0.0.1:5174` and proxies API requests to the backend.
 
-```text
-http://127.0.0.1:5174/
+### Public access via ngrok
+
+For servers without a public IP, ngrok creates an outbound HTTPS tunnel. This avoids nginx entirely — FastAPI serves both the API and the built frontend on a single port.
+
+First-time setup:
+
+```bash
+./scripts/install_ngrok_local.sh
+export NGROK_AUTHTOKEN='<your-token>'
+./scripts/configure_ngrok_token.sh
+./scripts/build_frontend.sh
+./scripts/install_user_api_service.sh
+./scripts/install_ngrok_user_service.sh
 ```
 
-The backend runs on `127.0.0.1:8001`; the Vite frontend runs on `127.0.0.1:5174` and proxies API requests to the backend.
+Get the public URL:
+
+```bash
+./scripts/get_ngrok_url.sh
+```
+
+Free ngrok URLs change on tunnel restart. For a stable demo URL, reserve a static domain in ngrok and update `scripts/run_ngrok_tunnel.sh`.
+
+For user systemd services to survive logout, an admin should run:
+
+```bash
+sudo loginctl enable-linger <username>
+```
+
+See `docs/ngrok_deployment.md` for the full guide.
+
+## API Reference
+
+The FastAPI backend exposes the following endpoints:
+
+### `POST /mld`
+
+Query an MLD estimate at a point and time.
+
+**Request body:**
+
+```json
+{
+  "lat": 28.0,
+  "lon": -89.0,
+  "time": "2025-08-01T12:00:00Z"
+}
+```
+
+**Response:**
+
+```json
+{
+  "query_lat": 28.0,
+  "query_lon": -89.0,
+  "query_time": "2025-08-01T12:00:00Z",
+  "best_estimate_mld": 8.66,
+  "confidence": "Medium",
+  "model_mld": 11.94,
+  "correction_applied": -3.29,
+  "nearby_observations": [
+    {
+      "id": "aoml/4903556/profiles/R4903556_157.nc",
+      "platform_id": "4903556",
+      "obs_time": "2025-08-01T19:08:10Z",
+      "distance_km": 88.5,
+      "mld_m": 14.8,
+      "source": "ARGO_GDAC",
+      "lat": 28.106,
+      "lon": -88.1061
+    }
+  ],
+  "window_used": "historical_replay_local"
+}
+```
+
+### `GET /metadata`
+
+Returns replay mode configuration, available dates, and active model path.
+
+### `GET /map_layer?time=<ISO8601>&layer=<name>&stride=<int>`
+
+Returns a sampled spatial field for map rendering. Available layers:
+
+| Layer | Description |
+|-------|-------------|
+| `model_mld` | Raw RTOFS model MLD field |
+| `correction` | ML correction magnitude at each grid point |
+| `corrected_mld` | Final corrected MLD (model + correction) |
+| `observations` | All replay in-situ observations for the selected date |
+
+### `GET /health`
+
+Returns service status, mode, dataset loaded state, and cache sizes.
 
 ## Important Paths
 
@@ -69,8 +162,9 @@ ml/                                         ML processing, training, source, and
 artifacts/                                  Frozen models, datasets, audit CSVs, and generated reports
 docs/                                       Human-facing prototype docs
 scripts/                                    Local run/check helpers
+deploy/                                     nginx and systemd service files
 NEXT_SESSION_HANDOFF.md                     Working-session continuity notes
-CHANGELOG.md                               Historical project log
+CHANGELOG.md                                Historical project log
 ```
 
 The research-era `ML_baseline/` directory has been split into `ml/` source code and `artifacts/` generated outputs.
@@ -97,4 +191,3 @@ See `docs/insitu_requirements.md` for details.
 - ERDDAP gliders are currently treated as diagnostic/sidecar data because deployment clustering hurt grouped generalization.
 - The replay model is prototype-ready for the app, not production accepted.
 - The current repo layout still preserves several research artifacts so the analysis trail remains auditable.
-
