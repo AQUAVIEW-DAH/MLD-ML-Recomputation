@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -25,6 +26,7 @@ from mld_pipeline import get_mld_estimate
 
 APP_MODE = os.getenv("APP_MODE", "historical_replay").strip().lower()
 DEFAULT_REPLAY_MODEL_PATH = "artifacts/models/model_historical_replay_2025_jul_aug.pkl"
+FRONTEND_DIST_DIR = Path(os.getenv("FRONTEND_DIST_DIR", "mld-dashboard/dist"))
 DEFAULT_LAYER_BBOX = {
     "lat_min": 18.0,
     "lat_max": 31.5,
@@ -394,3 +396,20 @@ def health_check():
         "cached_layers": len(layer_cache),
         "active_model_path": os.getenv("ML_MODEL_PATH"),
     }
+
+
+@app.get("/{full_path:path}")
+def serve_frontend(full_path: str):
+    """Serve the built dashboard when FastAPI is used as the public entrypoint."""
+    dist_dir = FRONTEND_DIST_DIR.resolve()
+    index_path = dist_dir / "index.html"
+    if not index_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Frontend build not found. Run ./scripts/build_frontend.sh first.",
+        )
+
+    requested_path = (dist_dir / full_path).resolve()
+    if requested_path.is_file() and requested_path.is_relative_to(dist_dir):
+        return FileResponse(requested_path)
+    return FileResponse(index_path)

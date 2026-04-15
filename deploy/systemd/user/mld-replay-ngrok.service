@@ -1,0 +1,16 @@
+[Unit]
+Description=ngrok tunnel for MLD Historical Replay app
+After=mld-replay-api.service
+Wants=mld-replay-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/suramya/MLD-ML-Recomputation
+ExecStart=/home/suramya/MLD-ML-Recomputation/scripts/run_ngrok_tunnel.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/suramya/MLD-ML-Recomputation/logs/ngrok.log
+StandardError=append:/home/suramya/MLD-ML-Recomputation/logs/ngrok.log
+
+[Install]
+WantedBy=default.target

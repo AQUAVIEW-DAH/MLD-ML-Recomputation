@@ -8,6 +8,7 @@ mld-env/
 node_modules/
 mld-dashboard/node_modules/
 mld-dashboard/dist/
+bin/
 
 # Large local data artifacts
 *.nc

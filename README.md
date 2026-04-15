@@ -37,7 +37,7 @@ The original product idea was a live AQUAVIEW-style endpoint that combines model
 - The holdout window was excluded from model training.
 - The app can demonstrate the intended user experience without pretending to be operationally live.
 
-See `docs/historical_sandbox.md` for the full rationale.
+See `docs/historical_sandbox.md` for the full rationale. For no-public-IP deployment, see `docs/ngrok_deployment.md`.
 
 ## Run The Replay App
 
