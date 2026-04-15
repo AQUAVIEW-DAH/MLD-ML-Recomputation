@@ -1,0 +1,21 @@
+[Unit]
+Description=MLD Historical Replay FastAPI backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=suramya
+Group=suramya
+WorkingDirectory=/home/suramya/MLD-ML-Recomputation
+Environment=APP_MODE=historical_replay
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/bin/mkdir -p /home/suramya/MLD-ML-Recomputation/logs
+ExecStart=/home/suramya/MLD-ML-Recomputation/mld-env/bin/python -m uvicorn api:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/suramya/MLD-ML-Recomputation/logs/api_replay_8001.log
+StandardError=append:/home/suramya/MLD-ML-Recomputation/logs/api_replay_8001.log
+
+[Install]
+WantedBy=multi-user.target
