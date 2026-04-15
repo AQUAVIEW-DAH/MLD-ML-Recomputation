@@ -2,16 +2,16 @@
 
 ## Current Focus
 - We are investigating whether the ML correction prototype can be trained on time-coincident in-situ profiles and Global RTOFS fields, instead of the current smoke-test setup that pairs 2023-2024 observations with a short local 2026 RTOFS cache.
-- `ML_baseline/model.pkl` now points to the WOD+Argo same-day prototype so the app uses the current baseline by default. Treat it as a prototype-ready baseline for app integration, not a final production acceptance artifact.
+- `artifacts/models/model.pkl` now points to the WOD+Argo same-day prototype so the app uses the current baseline by default. Treat it as a prototype-ready baseline for app integration, not a final production acceptance artifact.
 
 ## Current Session Checkpoint: Same-Day RTOFS Prototypes
 - WOD XBT 2024/2025 same-day prototype is complete and committed in `8aebe15`.
 - Argo GDAC 2024/2025 same-day prototype is complete and committed in `ec7b4f5`.
 - ERDDAP glider 2024/2025 same-day prototype finished in tmux and produced final artifacts:
-  - `ML_baseline/ERDDAP_GLIDER_RTOFS_2024_2025_REPORT.md`
-  - `ML_baseline/erddap_glider_2024_2025_profile_audit.csv`
-  - `ML_baseline/training_data_erddap_glider_rtofs_2024_2025.csv`
-  - `ML_baseline/benchmark_results_erddap_glider_rtofs_2024_2025.md`
+  - `artifacts/reports/source_audits/ERDDAP_GLIDER_RTOFS_2024_2025_REPORT.md`
+  - `artifacts/audits/erddap_glider_2024_2025_profile_audit.csv`
+  - `artifacts/datasets/training_data_erddap_glider_rtofs_2024_2025.csv`
+  - `artifacts/reports/benchmarks/benchmark_results_erddap_glider_rtofs_2024_2025.md`
 - The tmux session exited; `tmux ls` now reports no tmux server.
 - The raw tmux log is `ML_baseline/erddap_glider_rtofs_2024_2025_tmux.log`; do not commit it unless we explicitly decide to keep raw run logs in git.
 - A rare invalid-label issue was caught after the first ERDDAP run: some noisy glider profiles produced MLD values shallower than the 10m reference. The ERDDAP builder now requires valid observed MLD in the 10-100m range, and the generated ERDDAP CSV/report were repaired accordingly.
@@ -34,7 +34,7 @@
 - Combined WOD-XBT + Argo:
   - 1,065 rows across 48 platforms and 55 dates.
   - Benchmark: LinearRegression mean MAE 8.509m, mean R² 0.076.
-  - This remains the best positive-R² same-day RTOFS prototype and is now the default app baseline via `ML_baseline/model.pkl`.
+  - This remains the best positive-R² same-day RTOFS prototype and is now the default app baseline via `artifacts/models/model.pkl`.
 - ERDDAP glider:
   - 18,485 profiles extracted after profile/10m QC.
   - 13,518 valid 10m-reference labels in the 10-100m range.
@@ -54,16 +54,16 @@
   - Cap3: 1,327 rows, 262 ERDDAP rows, LinearRegression mean MAE 7.647m, mean R² -0.050.
   - Interpretation: light ERDDAP use can keep R² barely positive, but none of the balanced variants beats the WOD-XBT + Argo baseline R² of 0.076.
 - WOD+Argo promoted baseline artifact:
-  - Artifact: `ML_baseline/model_wod_argo_rtofs_2024_2025_linear.pkl`
-  - Training report: `ML_baseline/train_ml_report_wod_argo_rtofs_2024_2025_linear.md`
+  - Artifact: `artifacts/models/model_wod_argo_rtofs_2024_2025_linear.pkl`
+  - Training report: `artifacts/reports/training/train_ml_report_wod_argo_rtofs_2024_2025_linear.md`
   - Model type: `LinearRegression`
-  - Data: `ML_baseline/training_data_combined_rtofs_2024_2025.csv`
+  - Data: `artifacts/datasets/training_data_combined_rtofs_2024_2025.csv`
   - One grouped split result: MAE 8.939m, R² 0.267.
   - Interpretation: best current same-day source mix and now promoted as the prototype baseline in `model.pkl` so the app and frontend use it by default.
 - Pipeline override sanity check:
-  - `mld_pipeline.py` still honors `ML_MODEL_PATH` for experiments, but the default app path now resolves directly to the promoted WOD+Argo prototype in `ML_baseline/model.pkl`.
+  - `mld_pipeline.py` still honors `ML_MODEL_PATH` for experiments, but the default app path now resolves directly to the promoted WOD+Argo prototype in `artifacts/models/model.pkl`.
   - The stale `extract_ioos_profiles` import was fixed to use `extract_erddap_profiles`.
-  - Local no-network sanity check with `ML_MODEL_PATH=ML_baseline/model_wod_argo_rtofs_2024_2025_linear.pkl` returned:
+  - Local no-network sanity check with `ML_MODEL_PATH=artifacts/models/model_wod_argo_rtofs_2024_2025_linear.pkl` returned:
     - `model_mld=16.96m`
     - `correction_applied=3.45m`
     - `best_estimate_mld=20.42m`
@@ -74,9 +74,9 @@
 ## Historical Replay Prototype Checkpoint
 - We now have a strict historical replay sandbox for the latest dense same-day window instead of pretending the current app is a live 2026 product.
 - Replay split artifacts:
-  - `ML_baseline/training_data_train_historical_replay_pre_2025_07_07.csv`
-  - `ML_baseline/training_data_holdout_historical_replay_2025_jul_aug.csv`
-  - `ML_baseline/historical_replay_split_report_2025_jul_aug.md`
+  - `artifacts/datasets/training_data_train_historical_replay_pre_2025_07_07.csv`
+  - `artifacts/datasets/training_data_holdout_historical_replay_2025_jul_aug.csv`
+  - `artifacts/reports/training/historical_replay_split_report_2025_jul_aug.md`
 - Replay holdout window: 2025-07-07 to 2025-08-31.
 - Replay train set summary:
   - 796 rows.
@@ -89,8 +89,8 @@
   - 21 platforms.
   - Source mix: 269 `ARGO_GDAC`.
 - Frozen replay artifact:
-  - `ML_baseline/model_historical_replay_2025_jul_aug.pkl`
-  - Training report: `ML_baseline/train_ml_report_historical_replay_2025_jul_aug.md`
+  - `artifacts/models/model_historical_replay_2025_jul_aug.pkl`
+  - Training report: `artifacts/reports/training/train_ml_report_historical_replay_2025_jul_aug.md`
 - Replay holdout result versus raw RTOFS:
   - Raw RTOFS: MAE 7.112m, RMSE 9.274m, R² -0.003.
   - LinearRegression corrected replay artifact: MAE 6.431m, RMSE 8.355m, R² 0.186.
@@ -103,9 +103,9 @@
 - The app/backend are now wired for historical replay mode instead of pretending to be a live 2026 product.
 - Backend changes:
   - `api.py` now defaults to `APP_MODE=historical_replay`.
-  - Replay mode loads `ML_baseline/training_data_holdout_historical_replay_2025_jul_aug.csv` for local provenance observations.
+  - Replay mode loads `artifacts/datasets/training_data_holdout_historical_replay_2025_jul_aug.csv` for local provenance observations.
   - Replay mode resolves per-date RTOFS files from `/data/suramya/rtofs_time_matched/rtofs.YYYYMMDD/rtofs_glo_3dz_f006_6hrly_hvr_US_east.nc`.
-  - Replay mode defaults `ML_MODEL_PATH` to `ML_baseline/model_historical_replay_2025_jul_aug.pkl` unless explicitly overridden.
+  - Replay mode defaults `ML_MODEL_PATH` to `artifacts/models/model_historical_replay_2025_jul_aug.pkl` unless explicitly overridden.
   - Added `/metadata` endpoint so the frontend can discover replay dates and sandbox settings.
 - Pipeline changes:
   - `mld_pipeline.py` now accepts local replay observations directly and returns real observation coordinates in the API payload.
@@ -126,7 +126,7 @@
 
 ## Key Finding: 2023 WOD Density
 - The dense 2023 WOD block is not broad year-round density. It is mostly one glider deployment.
-- Current WOD rows in `ML_baseline/training_data.csv`: 1,150.
+- Current WOD rows in `artifacts/datasets/training_data.csv`: 1,150.
 - 2023 WOD rows: 1,114. 2024 WOD rows: 36 in the finalized CSV.
 - `WOD_GLD_2023` contributes 963 rows.
 - `MOTE-DORA (Slocum G3 glider; WMO4802994)` contributes 831 rows from 2023-04-30 to 2023-05-16.
@@ -165,5 +165,17 @@
 - Add/standardize a spatial coverage diagnostic for every same-day training CSV, ideally including unique RTOFS cells and not just half-degree cells.
 - Use Argo+WOD as the primary same-day prototype for now, and keep ERDDAP as a sidecar/diagnostic until validation can handle deployment clustering better.
 - If we want a next technical step, extend `train_ml.py` or a new trainer to save scaler/metadata consistently and evaluate repeated grouped splits before promoting any candidate artifact.
-- Next product-facing step: polish and commit the historical replay app mode that already loads `ML_baseline/model_historical_replay_2025_jul_aug.pkl` and constrains queries to the Jul-Aug 2025 sandbox window.
+- Next product-facing step: polish and commit the historical replay app mode that already loads `artifacts/models/model_historical_replay_2025_jul_aug.pkl` and constrains queries to the Jul-Aug 2025 sandbox window.
 - Keep the 2023 dense glider block parked until exact historical Global RTOFS access is found.
+
+## Repo Structure Cleanup Checkpoint
+- The research-era `ML_baseline/` source/artifact bundle has been split into:
+  - `ml/` for feature extraction, source ingestion, processing, training, and audit code.
+  - `artifacts/models/` for frozen model pickle artifacts.
+  - `artifacts/datasets/` for generated training and replay CSVs.
+  - `artifacts/audits/` for audit CSVs.
+  - `artifacts/reports/` for generated benchmark, source-audit, and training reports.
+- Runtime code now imports `ml.features` instead of `ML_baseline.features`.
+- Replay mode now defaults to `artifacts/models/model_historical_replay_2025_jul_aug.pkl` and `artifacts/datasets/training_data_holdout_historical_replay_2025_jul_aug.csv`.
+- Local app logs now write to `logs/` via `scripts/run_replay_api.sh` and `scripts/run_replay_frontend.sh`; logs remain ignored.
+- `ML_baseline/pipeline_v3.log` was removed from version control as local run debris; old logs still exist locally if needed.

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import sys
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -19,13 +20,16 @@ from typing import Iterable
 import pandas as pd
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from ml.paths import AUDITS_DIR, DATASETS_DIR, SOURCE_REPORTS_DIR
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TRAINING_CSV = Path(__file__).with_name("training_data.csv")
+DEFAULT_TRAINING_CSV = DATASETS_DIR / "training_data.csv"
 DEFAULT_RTOFS_DIR = Path("/data/suramya/rtofs_snapshots")
-DEFAULT_REPORT = Path(__file__).with_name("rtofs_temporal_audit.md")
-DEFAULT_CSV = Path(__file__).with_name("rtofs_temporal_audit.csv")
+DEFAULT_REPORT = SOURCE_REPORTS_DIR / "rtofs_temporal_audit.md"
+DEFAULT_CSV = AUDITS_DIR / "rtofs_temporal_audit.csv"
 RTOFS_S3_BASE = "https://noaa-nws-rtofs-pds.s3.amazonaws.com"
 DEFAULT_LEADS = (6, 12, 18, 24)
 OBSERVED_PUBLIC_BUCKET_START = "2024-01-27"

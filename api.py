@@ -19,12 +19,12 @@ from historical_replay import (
     get_rtofs_path_for_query_time,
     load_replay_dataframe,
 )
-from ML_baseline.features import extract_ml_features
+from ml.features import extract_ml_features
 from mld_core import DEFAULT_RTOFS_FILE, compute_mld_temp_threshold
 from mld_pipeline import get_mld_estimate
 
 APP_MODE = os.getenv("APP_MODE", "historical_replay").strip().lower()
-DEFAULT_REPLAY_MODEL_PATH = "ML_baseline/model_historical_replay_2025_jul_aug.pkl"
+DEFAULT_REPLAY_MODEL_PATH = "artifacts/models/model_historical_replay_2025_jul_aug.pkl"
 DEFAULT_LAYER_BBOX = {
     "lat_min": 18.0,
     "lat_max": 31.5,

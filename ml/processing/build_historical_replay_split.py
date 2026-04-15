@@ -1,14 +1,20 @@
 import os
+from pathlib import Path
+import sys
 from datetime import datetime
 
 import pandas as pd
 
-DEFAULT_INPUT_PATH = "ML_baseline/training_data_combined_rtofs_2024_2025.csv"
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from ml.paths import DATASETS_DIR, TRAINING_REPORTS_DIR
+
+DEFAULT_INPUT_PATH = str(DATASETS_DIR / "training_data_combined_rtofs_2024_2025.csv")
 DEFAULT_HOLDOUT_START = "2025-07-07"
 DEFAULT_HOLDOUT_END = "2025-08-31"
-DEFAULT_TRAIN_OUTPUT = "ML_baseline/training_data_train_historical_replay_pre_2025_07_07.csv"
-DEFAULT_HOLDOUT_OUTPUT = "ML_baseline/training_data_holdout_historical_replay_2025_jul_aug.csv"
-DEFAULT_REPORT_OUTPUT = "ML_baseline/historical_replay_split_report_2025_jul_aug.md"
+DEFAULT_TRAIN_OUTPUT = str(DATASETS_DIR / "training_data_train_historical_replay_pre_2025_07_07.csv")
+DEFAULT_HOLDOUT_OUTPUT = str(DATASETS_DIR / "training_data_holdout_historical_replay_2025_jul_aug.csv")
+DEFAULT_REPORT_OUTPUT = str(TRAINING_REPORTS_DIR / "historical_replay_split_report_2025_jul_aug.md")
 
 
 def parse_row_date(value: str) -> pd.Timestamp:

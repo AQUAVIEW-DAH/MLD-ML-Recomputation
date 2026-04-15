@@ -15,6 +15,7 @@ mld-dashboard/dist/
 # Local run/session artifacts
 *.pid
 *.log
+logs/
 *handoff*
 *session*
 

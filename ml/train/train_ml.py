@@ -1,4 +1,9 @@
-import sys; import os; sys.path.insert(0, os.path.abspath(".."))
+import sys
+import os
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import pandas as pd
 import numpy as np
 import pickle
@@ -8,13 +13,14 @@ from sklearn.model_selection import GroupShuffleSplit
 from sklearn.metrics import mean_absolute_error, r2_score
 from sklearn.linear_model import LinearRegression
 from xgboost import XGBRegressor
+from ml.paths import DATASETS_DIR, MODELS_DIR, TRAINING_REPORTS_DIR
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DEFAULT_DATA_PATH = "ML_baseline/training_data.csv"
-DEFAULT_MODEL_PATH = "ML_baseline/model.pkl"
-DEFAULT_REPORT_PATH = "ML_baseline/train_ml_report.md"
+DEFAULT_DATA_PATH = str(DATASETS_DIR / "training_data.csv")
+DEFAULT_MODEL_PATH = str(MODELS_DIR / "model.pkl")
+DEFAULT_REPORT_PATH = str(TRAINING_REPORTS_DIR / "train_ml_report.md")
 
 
 def build_model(model_name: str):

@@ -19,16 +19,17 @@ import urllib.request
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ML_baseline.wod_source import WOD_CACHE_DIR, WOD_S3_BASE, extract_wod_profiles
+from ml.sources.wod_source import WOD_CACHE_DIR, WOD_S3_BASE, extract_wod_profiles
+from ml.paths import AUDITS_DIR
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_BBOX = [-98.0, 18.0, -80.0, 31.0]
 DEFAULT_YEARS = [2023, 2024]
 DEFAULT_INSTRUMENTS = ["xbt", "gld", "ctd", "pfl", "mrb", "drb", "apb"]
-DEFAULT_OUTPUT = Path(__file__).with_name("source_audit_results.csv")
+DEFAULT_OUTPUT = AUDITS_DIR / "source_audit_results.csv"
 DEFAULT_ERDDAP_SERVERS = [
     "https://gliders.ioos.us/erddap",
     "https://erddap.secoora.org/erddap",

@@ -18,7 +18,7 @@ from aquaview_obs import (
 )
 
 logger = logging.getLogger(__name__)
-DEFAULT_ML_MODEL_PATH = "ML_baseline/model.pkl"
+DEFAULT_ML_MODEL_PATH = "artifacts/models/model.pkl"
 
 
 def haversine(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
@@ -141,7 +141,7 @@ def get_mld_estimate(
 
     import pickle
     import pandas as pd
-    from ML_baseline.features import extract_ml_features
+    from ml.features import extract_ml_features
 
     correction = 0.0
     ml_model_loaded = False

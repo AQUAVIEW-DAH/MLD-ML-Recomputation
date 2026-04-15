@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-LOG_FILE="${MLD_FRONTEND_LOG:-$ROOT_DIR/ML_baseline/frontend_replay.log}"
+LOG_FILE="${MLD_FRONTEND_LOG:-$ROOT_DIR/logs/frontend_replay.log}"
 
 cd "$ROOT_DIR/mld-dashboard"
 mkdir -p "$(dirname "$LOG_FILE")"

@@ -1,7 +1,8 @@
 """
-Explore and build a same-day RTOFS dataset from Argo GDAC 2024+2025 GoM profiles.
+Explore and build a same-day RTOFS dataset from WOD XBT 2024+2025 profiles.
 
-This is separate from data_builder.py and never overwrites training_data.csv.
+This script is deliberately separate from data_builder.py because it should not
+overwrite the temporally decoupled smoke-test training_data.csv.
 """
 from __future__ import annotations
 
@@ -9,26 +10,27 @@ import argparse
 import logging
 import os
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
 import xarray as xr
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from mld_core import compute_mld_temp_threshold
-from ML_baseline.argo_gdac_source import ArgoGDACProfile, extract_argo_gdac_profiles, matching_index_files
-from ML_baseline.build_rtofs_time_matched_subset import download_rtofs, model_valid_time
-from ML_baseline.features import extract_ml_features
-from ML_baseline.rtofs_temporal_audit import check_s3_date
+from ml.processing.build_rtofs_time_matched_subset import download_rtofs, model_valid_time
+from ml.features import extract_ml_features
+from ml.audits.rtofs_temporal_audit import check_s3_date
+from ml.sources.wod_source import WODProfile, extract_wod_profiles
+from ml.paths import AUDITS_DIR, DATASETS_DIR, SOURCE_REPORTS_DIR
 
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_PROFILE_CSV = BASE_DIR / "argo_gdac_2024_2025_profile_audit.csv"
-DEFAULT_TRAINING_CSV = BASE_DIR / "training_data_argo_gdac_rtofs_2024_2025.csv"
-DEFAULT_REPORT = BASE_DIR / "ARGO_GDAC_RTOFS_2024_2025_REPORT.md"
+DEFAULT_PROFILE_CSV = AUDITS_DIR / "wod_xbt_2024_2025_profile_audit.csv"
+DEFAULT_TRAINING_CSV = DATASETS_DIR / "training_data_wod_xbt_rtofs_2024_2025.csv"
+DEFAULT_REPORT = SOURCE_REPORTS_DIR / "WOD_XBT_RTOFS_2024_2025_REPORT.md"
 DEFAULT_RTOFS_CACHE_DIR = Path("/data/suramya/rtofs_time_matched")
 GOM_BBOX = [-98.0, 18.0, -80.0, 31.0]
 MAX_OBSERVED_MLD_M = 100.0
@@ -36,28 +38,24 @@ MAX_OBSERVED_MLD_M = 100.0
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--start", default="20240101")
-    parser.add_argument("--end", default="20251231")
+    parser.add_argument("--years", default="2024,2025")
     parser.add_argument("--bbox", default="-98,18,-80,31")
-    parser.add_argument("--max-profiles", type=int, default=0, help="0 means no cap.")
-    parser.add_argument("--max-per-platform", type=int, default=0, help="0 means no cap.")
     parser.add_argument("--profile-csv", type=Path, default=DEFAULT_PROFILE_CSV)
     parser.add_argument("--training-csv", type=Path, default=DEFAULT_TRAINING_CSV)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
     parser.add_argument("--rtofs-cache-dir", type=Path, default=DEFAULT_RTOFS_CACHE_DIR)
     parser.add_argument("--skip-rtofs-download", action="store_true")
-    parser.add_argument("--max-rtofs-dates", type=int, default=0, help="0 uses every RTOFS-eligible date.")
     parser.add_argument("--timeout", type=float, default=300.0)
     parser.add_argument("--s3-timeout", type=float, default=10.0)
     parser.add_argument("--leads", default="6,12,18,24")
     return parser.parse_args()
 
 
-def profile_key(profile: ArgoGDACProfile) -> str:
-    return f"{profile.cast_id}|{profile.obs_time}|{profile.lat:.5f}|{profile.lon:.5f}"
+def platform_id(profile: WODProfile) -> str:
+    return profile.platform or profile.cruise_id or f"wod_{profile.cast_id}"
 
 
-def profile_records(profiles: list[ArgoGDACProfile]) -> pd.DataFrame:
+def profile_records(profiles: list[WODProfile]) -> pd.DataFrame:
     records = []
     for profile in profiles:
         obs_mld = compute_mld_temp_threshold(profile.depth_m, profile.temperature_c)
@@ -66,10 +64,9 @@ def profile_records(profiles: list[ArgoGDACProfile]) -> pd.DataFrame:
             {
                 "source": profile.source,
                 "instrument": profile.instrument,
-                "profile_key": profile_key(profile),
                 "cast_id": profile.cast_id,
                 "cruise_id": profile.cruise_id,
-                "platform_id": profile.platform or profile.cruise_id,
+                "platform_id": platform_id(profile),
                 "lat": round(profile.lat, 5),
                 "lon": round(profile.lon, 5),
                 "obs_time": profile.obs_time,
@@ -88,9 +85,7 @@ def profile_records(profiles: list[ArgoGDACProfile]) -> pd.DataFrame:
 
 def add_rtofs_availability(df: pd.DataFrame, leads: list[int], timeout: float) -> dict[str, str]:
     urls_by_date: dict[str, str] = {}
-    for index, obs_date in enumerate(sorted(df["obs_date"].unique()), start=1):
-        if index == 1 or index % 50 == 0:
-            logger.info("Checking RTOFS S3 availability for date %d/%d", index, df["obs_date"].nunique())
+    for obs_date in sorted(df["obs_date"].unique()):
         check = check_s3_date(str(obs_date), leads=leads, timeout=timeout)
         if check.available and check.url:
             urls_by_date[str(obs_date)] = check.url
@@ -104,11 +99,10 @@ def build_training_rows(
     urls_by_date: dict[str, str],
     cache_dir: Path,
     timeout: float,
-) -> tuple[pd.DataFrame, int]:
+) -> pd.DataFrame:
     rows = []
     skipped_no_features = 0
-    for index, (obs_date, group) in enumerate(eligible.groupby("obs_date"), start=1):
-        logger.info("Extracting RTOFS features for date %d/%d: %s (%d profiles)", index, eligible["obs_date"].nunique(), obs_date, len(group))
+    for obs_date, group in eligible.groupby("obs_date"):
         url = urls_by_date.get(str(obs_date))
         if not url:
             continue
@@ -124,7 +118,7 @@ def build_training_rows(
                 out = {
                     "rtofs_date": str(obs_date),
                     "wod_source": row["source"],
-                    "source_family": "ARGO_GDAC",
+                    "source_family": "WOD",
                     "instrument": row["instrument"],
                     "cast_id": row["cast_id"],
                     "cruise_id": row["cruise_id"],
@@ -157,7 +151,10 @@ def build_training_rows(
                 rows.append(out)
         finally:
             ds.close()
-    return pd.DataFrame(rows), skipped_no_features
+
+    if skipped_no_features:
+        logger.info("Skipped rows with no RTOFS features: %d", skipped_no_features)
+    return pd.DataFrame(rows)
 
 
 def count_cells(df: pd.DataFrame, degree: float) -> int:
@@ -172,31 +169,20 @@ def top_counts(series: pd.Series, limit: int = 12) -> dict[str, int]:
     return {str(k): int(v) for k, v in series.value_counts().head(limit).items()}
 
 
-def write_report(
-    path: Path,
-    index_file_count: int,
-    profile_df: pd.DataFrame,
-    training_df: pd.DataFrame,
-    skipped_no_features: int,
-    max_rtofs_dates: int,
-) -> None:
+def write_report(path: Path, profile_df: pd.DataFrame, training_df: pd.DataFrame) -> None:
     eligible = profile_df[profile_df["temp_mld_ref10_under100m"]]
     rtofs_eligible = eligible[eligible["same_day_rtofs_s3_available"]]
     with path.open("w") as f:
-        f.write("# Argo GDAC 2024-2025 Same-Day RTOFS Audit\n\n")
+        f.write("# WOD XBT 2024-2025 Same-Day RTOFS Audit\n\n")
         f.write("## Summary\n")
-        f.write(f"- Argo index profile-file matches in GoM/date window: {index_file_count}\n")
-        f.write(f"- Argo GDAC profiles extracted after 10m/profile QC: {len(profile_df)}\n")
+        f.write(f"- WOD XBT profiles extracted in GoM bbox: {len(profile_df)}\n")
         f.write(f"- Profiles with 10m temperature-threshold MLD <= {MAX_OBSERVED_MLD_M:.0f}m: {len(eligible)}\n")
         f.write(f"- Eligible profiles with same-day public RTOFS S3 file: {len(rtofs_eligible)}\n")
         f.write(f"- Rows with RTOFS features extracted: {len(training_df)}\n")
-        f.write(f"- RTOFS feature extraction skips: {skipped_no_features}\n")
-        if max_rtofs_dates:
-            f.write(f"- RTOFS feature extraction date cap: top {max_rtofs_dates} dates by platform count, then row count\n")
         if not profile_df.empty:
             f.write(f"- Observation date range: {profile_df['obs_time'].min()} to {profile_df['obs_time'].max()}\n")
-            f.write(f"- Platforms in extracted profiles: {profile_df['platform_id'].nunique()}\n")
-            f.write(f"- Extracted platform counts: {top_counts(profile_df['platform_id'])}\n")
+            f.write(f"- Source counts: {top_counts(profile_df['source'])}\n")
+            f.write(f"- Platform counts: {top_counts(profile_df['platform_id'])}\n")
         if not training_df.empty:
             f.write(f"- Training date range: {training_df['obs_time'].min()} to {training_df['obs_time'].max()}\n")
             f.write(f"- Training platforms: {training_df['platform_id'].nunique()}\n")
@@ -218,81 +204,57 @@ def write_report(
                 f"{len(year_rtofs)} | {len(year_training)} |\n"
             )
 
-        f.write("\n## Top Dates For RTOFS-Eligible Profiles\n\n")
+        f.write("\n## Date Counts For RTOFS-Eligible Profiles\n\n")
         f.write("| Date | Rows | Platforms |\n")
         f.write("| :--- | ---: | :--- |\n")
         if not rtofs_eligible.empty:
-            for obs_date, group in rtofs_eligible.groupby("obs_date").size().sort_values(ascending=False).head(30).items():
-                date_rows = rtofs_eligible[rtofs_eligible["obs_date"] == obs_date]
-                f.write(f"| {obs_date} | {int(group)} | {top_counts(date_rows['platform_id'], limit=8)} |\n")
+            for obs_date, group in rtofs_eligible.groupby("obs_date"):
+                f.write(f"| {obs_date} | {len(group)} | {top_counts(group['platform_id'], limit=6)} |\n")
 
         f.write("\n## Interpretation\n")
         f.write(
-            "- This is a same-day RTOFS residual dataset candidate and should stay separate "
-            "from the temporally decoupled main training CSV.\n"
+            "- This dataset is cleaner than the temporally decoupled main training CSV because "
+            "it uses same-day Global RTOFS files when available.\n"
         )
         f.write(
-            "- Argo profiles include salinity in the original files, but this first pass uses "
-            "the existing temperature-threshold label path for consistency with WOD XBT.\n"
+            "- It remains XBT-only, so it supports temperature-threshold MLD but not density MLD.\n"
         )
         f.write(
-            "- Compare platform/cell coverage against WOD XBT before deciding whether to merge "
-            "same-day source families for a combined benchmark.\n"
+            "- Platform and spatial clustering should be evaluated before accepting any model "
+            "trained on this table.\n"
         )
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     args = parse_args()
+    years = [int(value.strip()) for value in args.years.split(",") if value.strip()]
     bbox = [float(value.strip()) for value in args.bbox.split(",") if value.strip()]
     leads = [int(value.strip()) for value in args.leads.split(",") if value.strip()]
 
-    index_files = matching_index_files(
-        bbox=bbox,
-        start_yyyymmdd=args.start,
-        end_yyyymmdd=args.end,
-        max_profiles=args.max_profiles,
-        max_per_platform=args.max_per_platform,
-    )
-    profiles = extract_argo_gdac_profiles(
-        bbox=bbox,
-        start_yyyymmdd=args.start,
-        end_yyyymmdd=args.end,
-        max_profiles=args.max_profiles,
-        max_per_platform=args.max_per_platform,
-    )
+    profiles: list[WODProfile] = []
+    for year in years:
+        profiles.extend(extract_wod_profiles(year=year, instrument="xbt", bbox=bbox))
     profile_df = profile_records(profiles)
-    urls_by_date = add_rtofs_availability(profile_df, leads=leads, timeout=args.s3_timeout) if not profile_df.empty else {}
+    urls_by_date = add_rtofs_availability(profile_df, leads=leads, timeout=args.s3_timeout)
     profile_df.to_csv(args.profile_csv, index=False)
 
     eligible = profile_df[
         profile_df["temp_mld_ref10_under100m"] & profile_df["same_day_rtofs_s3_available"]
-    ].copy() if not profile_df.empty else pd.DataFrame()
-    if args.max_rtofs_dates and not eligible.empty:
-        top_dates = (
-            eligible.groupby("obs_date")
-            .agg(rows=("source", "size"), platforms=("platform_id", "nunique"))
-            .sort_values(["platforms", "rows"], ascending=False)
-            .head(args.max_rtofs_dates)
-            .index
-        )
-        eligible = eligible[eligible["obs_date"].isin(top_dates)].copy()
-        logger.info("Limited RTOFS feature extraction to %d top dates and %d profiles.", len(top_dates), len(eligible))
-
+    ].copy()
     if args.skip_rtofs_download:
         training_df = pd.DataFrame()
-        skipped_no_features = 0
     else:
-        training_df, skipped_no_features = build_training_rows(eligible, urls_by_date, args.rtofs_cache_dir, args.timeout)
+        training_df = build_training_rows(eligible, urls_by_date, args.rtofs_cache_dir, args.timeout)
         training_df.to_csv(args.training_csv, index=False)
 
-    write_report(args.report, len(index_files), profile_df, training_df, skipped_no_features, args.max_rtofs_dates)
+    write_report(args.report, profile_df, training_df)
     logger.info("Wrote %s", args.profile_csv)
     if not args.skip_rtofs_download:
         logger.info("Wrote %s", args.training_csv)
     logger.info("Wrote %s", args.report)
-    logger.info("Index profile files: %d", len(index_files))
-    logger.info("Extracted Argo profiles: %d", len(profile_df))
+    logger.info("Extracted profiles by source: %s", Counter(profile_df["source"]) if not profile_df.empty else {})
+    logger.info("Same-day RTOFS URLs by date: %d", len(urls_by_date))
     logger.info("Training rows: %d", len(training_df))
 
 

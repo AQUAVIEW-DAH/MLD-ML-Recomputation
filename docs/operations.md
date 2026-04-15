@@ -41,11 +41,11 @@ The restart script already handles this safely.
 
 ## Logs
 
-Local runtime logs are written under `ML_baseline/` for now:
+Local runtime logs are written under `logs/`:
 
 ```text
-ML_baseline/api_replay_8001.log
-ML_baseline/frontend_replay.log
+logs/api_replay_8001.log
+logs/frontend_replay.log
 ```
 
 These are local run artifacts and should not be committed.

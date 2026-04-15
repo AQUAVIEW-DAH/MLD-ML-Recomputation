@@ -32,7 +32,7 @@ The holdout rows are excluded from training and used as the replay observation/p
 ## Frozen Artifact
 
 ```text
-ML_baseline/model_historical_replay_2025_jul_aug.pkl
+artifacts/models/model_historical_replay_2025_jul_aug.pkl
 ```
 
 This is the current app model for historical replay mode.

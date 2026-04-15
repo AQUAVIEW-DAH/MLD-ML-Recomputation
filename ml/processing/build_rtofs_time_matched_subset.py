@@ -19,17 +19,17 @@ import pandas as pd
 import requests
 import xarray as xr
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from ML_baseline.features import extract_ml_features
+from ml.features import extract_ml_features
+from ml.paths import AUDITS_DIR, DATASETS_DIR
 
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_TRAINING_CSV = BASE_DIR / "training_data.csv"
-DEFAULT_AUDIT_CSV = BASE_DIR / "rtofs_temporal_audit.csv"
-DEFAULT_OUTPUT_CSV = BASE_DIR / "training_data_rtofs_time_matched_smoke.csv"
+DEFAULT_TRAINING_CSV = DATASETS_DIR / "training_data.csv"
+DEFAULT_AUDIT_CSV = AUDITS_DIR / "rtofs_temporal_audit.csv"
+DEFAULT_OUTPUT_CSV = DATASETS_DIR / "training_data_rtofs_time_matched_smoke.csv"
 DEFAULT_CACHE_DIR = Path("/data/suramya/rtofs_time_matched")
 
 

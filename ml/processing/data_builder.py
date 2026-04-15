@@ -10,22 +10,23 @@ Architecture:
 """
 import sys
 import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pandas as pd
 import xarray as xr
 import numpy as np
 import logging
-from pathlib import Path
 from datetime import datetime, timedelta
 from typing import List, Dict
 
 from mld_core import compute_mld_temp_threshold
-from ML_baseline.argo_gdac_source import extract_argo_gdac_profiles
-from ML_baseline.features import extract_ml_features
-from ML_baseline.erddap_glider_source import extract_erddap_glider_profiles
-from ML_baseline.wod_source import extract_all_wod_gom_profiles, WODProfile
+from ml.sources.argo_gdac_source import extract_argo_gdac_profiles
+from ml.features import extract_ml_features
+from ml.sources.erddap_glider_source import extract_erddap_glider_profiles
+from ml.sources.wod_source import extract_all_wod_gom_profiles, WODProfile
+from ml.paths import DATASETS_DIR
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,7 +42,7 @@ GOM_BBOX = [-98.0, 18.0, -80.0, 31.0]
 RTOFS_SNAPSHOT_DIR = Path("/data/suramya/rtofs_snapshots")
 
 # WOD data configuration. Override with env vars for source audits, e.g.
-#   WOD_INSTRUMENTS=xbt,gld,apb,ctd WOD_YEARS=2023,2024 python ML_baseline/data_builder.py
+#   WOD_INSTRUMENTS=xbt,gld,apb,ctd WOD_YEARS=2023,2024 python -m ml.processing.data_builder
 WOD_YEARS = [int(v) for v in os.getenv("WOD_YEARS", "2023,2024").split(",") if v.strip()]
 WOD_INSTRUMENTS = [v.strip().lower() for v in os.getenv("WOD_INSTRUMENTS", "xbt,gld,apb").split(",") if v.strip()]
 INCLUDE_ERDDAP_GLIDERS = os.getenv("INCLUDE_ERDDAP_GLIDERS", "0").lower() in {"1", "true", "yes"}
@@ -54,7 +55,7 @@ ARGO_END = os.getenv("ARGO_END", "20241231")
 MAX_OBSERVED_MLD_M = 100.0  # QC cap: remove implausibly deep GoM mixed layers
 
 # Output
-OUTPUT_DIR = Path(os.path.dirname(__file__))
+OUTPUT_DIR = DATASETS_DIR
 
 
 def find_nearest_rtofs_snapshot(

@@ -9,8 +9,11 @@ from xgboost import XGBRegressor
 from sklearn.linear_model import LinearRegression
 import sys
 import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from ml.paths import BENCHMARK_REPORTS_DIR, DATASETS_DIR
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -24,7 +27,7 @@ def benchmark_models():
     
     data_path = os.getenv(
         "BENCHMARK_DATA_PATH",
-        os.path.join(os.path.dirname(__file__), "training_data.csv"),
+        str(DATASETS_DIR / "training_data.csv"),
     )
     if not os.path.exists(data_path):
         logger.error(f"{data_path} not found.")
@@ -143,7 +146,7 @@ def benchmark_models():
     # Save updated benchmark results
     out_path = os.getenv(
         "BENCHMARK_OUTPUT_PATH",
-        os.path.join(os.path.dirname(__file__), "benchmark_results.md"),
+        str(BENCHMARK_REPORTS_DIR / "benchmark_results.md"),
     )
     source_series = df.get("wod_source", pd.Series(["unknown"]))
     source_family_series = df.get("source_family", pd.Series(["unknown"]))

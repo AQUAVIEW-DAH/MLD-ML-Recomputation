@@ -1,6 +1,8 @@
 import os
 import pickle
 import logging
+from pathlib import Path
+import sys
 
 import pandas as pd
 from sklearn.base import clone
@@ -9,13 +11,17 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from ml.paths import DATASETS_DIR, MODELS_DIR, TRAINING_REPORTS_DIR
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DEFAULT_TRAIN_PATH = "ML_baseline/training_data_train_historical_replay_pre_2025_07_07.csv"
-DEFAULT_HOLDOUT_PATH = "ML_baseline/training_data_holdout_historical_replay_2025_jul_aug.csv"
-DEFAULT_MODEL_OUTPUT = "ML_baseline/model_historical_replay_2025_jul_aug.pkl"
-DEFAULT_REPORT_OUTPUT = "ML_baseline/train_ml_report_historical_replay_2025_jul_aug.md"
+DEFAULT_TRAIN_PATH = str(DATASETS_DIR / "training_data_train_historical_replay_pre_2025_07_07.csv")
+DEFAULT_HOLDOUT_PATH = str(DATASETS_DIR / "training_data_holdout_historical_replay_2025_jul_aug.csv")
+DEFAULT_MODEL_OUTPUT = str(MODELS_DIR / "model_historical_replay_2025_jul_aug.pkl")
+DEFAULT_REPORT_OUTPUT = str(TRAINING_REPORTS_DIR / "train_ml_report_historical_replay_2025_jul_aug.md")
 FEATURES = ['model_sst', 'sst_gradient', 'model_salinity', 'kinetic_energy', 'model_mld']
 
 MODELS = {

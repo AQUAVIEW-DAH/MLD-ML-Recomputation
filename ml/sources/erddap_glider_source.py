@@ -18,11 +18,13 @@ from pathlib import Path
 
 import numpy as np
 
+from ml.paths import AUDITS_DIR
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_AUDIT_FILES = [
-    Path(__file__).with_name("source_audit_erddap_secoora.csv"),
-    Path(__file__).with_name("source_audit_erddap_ioos_gliders.csv"),
+    AUDITS_DIR / "source_audit_erddap_secoora.csv",
+    AUDITS_DIR / "source_audit_erddap_ioos_gliders.csv",
 ]
 MIN_DEPTH_LEVELS = 5
 MIN_MAX_DEPTH_M = 15.0

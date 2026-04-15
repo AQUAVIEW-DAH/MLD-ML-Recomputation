@@ -10,7 +10,7 @@ The current app is intentionally a **historical replay sandbox**, not a live 202
 - **Replay window:** 2025-07-07 to 2025-08-31
 - **Training data:** same-day RTOFS + WOD/Argo rows before 2025-07-07
 - **Holdout data:** Jul-Aug 2025 Argo rows excluded from training
-- **Frozen replay model:** `ML_baseline/model_historical_replay_2025_jul_aug.pkl`
+- **Frozen replay model:** `artifacts/models/model_historical_replay_2025_jul_aug.pkl`
 - **Raw RTOFS holdout:** MAE 7.112m, RMSE 9.274m, R2 -0.003
 - **Corrected replay holdout:** MAE 6.431m, RMSE 8.355m, R2 0.186
 
@@ -65,14 +65,15 @@ mld_pipeline.py                             MLD estimate pipeline and provenance
 mld_core.py                                 Core RTOFS and MLD calculation helpers
 mcp_server.py                               MCP wrapper for agent access
 mld-dashboard/                              React/Vite/Leaflet frontend
-ML_baseline/                                Current ML processing scripts, reports, datasets, and model artifacts
+ml/                                         ML processing, training, source, and audit code
+artifacts/                                  Frozen models, datasets, audit CSVs, and generated reports
 docs/                                       Human-facing prototype docs
 scripts/                                    Local run/check helpers
 NEXT_SESSION_HANDOFF.md                     Working-session continuity notes
 CHANGELOG.md                               Historical project log
 ```
 
-`ML_baseline/` is still a research-era mixed directory. The next structural cleanup should split it into `ml/`, `artifacts/`, and `docs/` after the current app and docs are stable.
+The research-era `ML_baseline/` directory has been split into `ml/` source code and `artifacts/` generated outputs.
 
 ## In-Situ Profile Requirements
 
@@ -101,7 +102,6 @@ See `docs/insitu_requirements.md` for details.
 
 Once this documentation layer is settled, the recommended next pass is:
 
-1. Move runtime code into `app/`.
-2. Move processing/training code into `ml/`.
-3. Move frozen models, CSVs, and reports into `artifacts/`.
-4. Update imports and artifact paths with smoke tests after each move.
+1. Move runtime code into `app/` if we want root-level Python files fully packaged.
+2. Add a small CLI or Makefile for common app/training commands.
+3. Decide whether large CSV/model artifacts should eventually move to external storage or Git LFS.

@@ -8,7 +8,7 @@ from typing import Any
 
 import pandas as pd
 
-DEFAULT_REPLAY_DATA_PATH = "ML_baseline/training_data_holdout_historical_replay_2025_jul_aug.csv"
+DEFAULT_REPLAY_DATA_PATH = "artifacts/datasets/training_data_holdout_historical_replay_2025_jul_aug.csv"
 DEFAULT_RTOFS_MATCHED_DIR = "/data/suramya/rtofs_time_matched"
 DEFAULT_REPLAY_RADIUS_KM = 100.0
 DEFAULT_REPLAY_WINDOW_HR = 72

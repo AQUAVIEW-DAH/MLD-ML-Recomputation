@@ -8,15 +8,18 @@ validation relative to the all-source same-day table.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-BASE_DIR = Path(__file__).resolve().parent
-WOD_PATH = BASE_DIR / "training_data_wod_xbt_rtofs_2024_2025.csv"
-ARGO_PATH = BASE_DIR / "training_data_argo_gdac_rtofs_2024_2025.csv"
-ERDDAP_PATH = BASE_DIR / "training_data_erddap_glider_rtofs_2024_2025.csv"
-REPORT_PATH = BASE_DIR / "BALANCED_SAME_DAY_RTOFS_REPORT.md"
+from ml.paths import DATASETS_DIR, SOURCE_REPORTS_DIR
+
+WOD_PATH = DATASETS_DIR / "training_data_wod_xbt_rtofs_2024_2025.csv"
+ARGO_PATH = DATASETS_DIR / "training_data_argo_gdac_rtofs_2024_2025.csv"
+ERDDAP_PATH = DATASETS_DIR / "training_data_erddap_glider_rtofs_2024_2025.csv"
+REPORT_PATH = SOURCE_REPORTS_DIR / "BALANCED_SAME_DAY_RTOFS_REPORT.md"
 MAX_OBSERVED_MLD_M = 100.0
 
 
@@ -96,7 +99,7 @@ def summarize(name: str, description: str, df: pd.DataFrame, out_path: Path) -> 
     return {
         "variant": name,
         "description": description,
-        "path": str(out_path.relative_to(BASE_DIR.parent)),
+        "path": str(out_path),
         "rows": int(len(df)),
         "platforms": int(df["platform_id"].nunique()),
         "dates": int(df["obs_date"].nunique()),
@@ -163,7 +166,7 @@ def main() -> None:
             cell_degree=float(variant["erddap_cell_degree"]),
             cap=int(variant["erddap_cap"]),
         )
-        out_path = BASE_DIR / f"training_data_balanced_rtofs_2024_2025_{variant['name']}.csv"
+        out_path = DATASETS_DIR / f"training_data_balanced_rtofs_2024_2025_{variant['name']}.csv"
         balanced.to_csv(out_path, index=False)
         summaries.append(summarize(str(variant["name"]), str(variant["description"]), balanced, out_path))
     write_report(summaries)

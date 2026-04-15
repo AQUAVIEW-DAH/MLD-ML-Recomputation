@@ -23,19 +23,20 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from mld_core import compute_mld_temp_threshold
-from ML_baseline.argo_gdac_source import ARGO_CACHE_DIR
-from ML_baseline.erddap_glider_source import DEFAULT_AUDIT_FILES, load_candidate_datasets
-from ML_baseline.wod_source import WOD_CACHE_DIR
+from ml.sources.argo_gdac_source import ARGO_CACHE_DIR
+from ml.sources.erddap_glider_source import DEFAULT_AUDIT_FILES, load_candidate_datasets
+from ml.sources.wod_source import WOD_CACHE_DIR
+from ml.paths import AUDITS_DIR, SOURCE_REPORTS_DIR
 
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_BBOX = [-98.0, 18.0, -80.0, 31.0]
-DEFAULT_OUTPUT_CSV = Path(__file__).with_name("profile_method_fit_audit.csv")
-DEFAULT_OUTPUT_REPORT = Path(__file__).with_name("PROFILE_METHOD_FIT_AUDIT.md")
+DEFAULT_OUTPUT_CSV = AUDITS_DIR / "profile_method_fit_audit.csv"
+DEFAULT_OUTPUT_REPORT = SOURCE_REPORTS_DIR / "PROFILE_METHOD_FIT_AUDIT.md"
 MIN_DEPTH_LEVELS = 5
 MIN_MAX_DEPTH_M = 15.0
 TEMP_DELTA_C = 0.2
