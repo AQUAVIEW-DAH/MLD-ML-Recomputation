@@ -77,12 +77,6 @@ Get the public URL:
 
 Free ngrok URLs change on tunnel restart. For a stable demo URL, reserve a static domain in ngrok and update `scripts/run_ngrok_tunnel.sh`.
 
-For user systemd services to survive logout, an admin should run:
-
-```bash
-sudo loginctl enable-linger <username>
-```
-
 See `docs/ngrok_deployment.md` for the full guide.
 
 ## API Reference
