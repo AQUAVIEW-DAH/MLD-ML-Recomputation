@@ -2,6 +2,8 @@
 
 A prototype for machine-learning-corrected mixed layer depth (MLD) estimates in the Gulf of Mexico, developed under the [AQUAVIEW](https://aquaview.org) project at the **Institute for Advanced Analytics and Society, University of Southern Mississippi (USM)**.
 
+**Live prototype:** [https://nondetractively-eery-tony.ngrok-free.dev](https://nondetractively-eery-tony.ngrok-free.dev)
+
 ![Replay app screenshot](docs/replay_screenshot.png)
 
 ## Motivation

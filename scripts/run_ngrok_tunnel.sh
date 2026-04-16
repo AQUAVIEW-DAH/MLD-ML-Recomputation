@@ -13,4 +13,6 @@ if [[ ! -x "$NGROK_BIN" ]]; then
   exit 1
 fi
 
-exec "$NGROK_BIN" http "http://127.0.0.1:${PORT}" --log stdout --log-level info
+NGROK_DOMAIN="${NGROK_DOMAIN:-nondetractively-eery-tony.ngrok-free.dev}"
+
+exec "$NGROK_BIN" http "http://127.0.0.1:${PORT}" --url="$NGROK_DOMAIN" --log stdout --log-level info
