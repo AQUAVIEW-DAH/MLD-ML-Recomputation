@@ -1,12 +1,26 @@
 # MLD Historical Replay Prototype
 
-This repository contains a prototype for machine-learning-corrected mixed layer depth (MLD) estimates in the Gulf of Mexico.
-
-The current app is intentionally a **historical replay sandbox**, not a live 2026 operational service. It replays a dense Jul-Aug 2025 holdout window where same-day RTOFS model fields and in-situ profile observations are available, then demonstrates the product loop: query a point, correct the model estimate, show confidence, and explain provenance.
+A prototype for machine-learning-corrected mixed layer depth (MLD) estimates in the Gulf of Mexico, developed under the [AQUAVIEW](https://aquaview.org) project at the **Institute for Advanced Analytics and Society, University of Southern Mississippi (USM)**.
 
 ![Replay app screenshot](docs/replay_screenshot.png)
 
+## Motivation
+
+Ocean model forecasts (like NOAA's RTOFS) are the primary tool for understanding current ocean conditions, but they have systematic biases — especially near dynamic features like fronts and eddies. Meanwhile, in-situ observations from Argo floats, gliders, and ship profiles capture what's actually happening, but they're sparse and scattered. Today, a user who wants to know "what's the mixed layer depth here?" gets either a model value with unknown bias or a nearby observation that may not represent their exact location.
+
+This project prototypes the next layer of AQUAVIEW: not just serving data, but **combining model output with in-situ observations via ML to produce estimates that are better than either source alone** — with a clear provenance chain explaining where the answer came from.
+
+MLD was chosen as the first use case because it directly impacts hurricane intensity forecasting, Navy sonar operations, and ocean dynamics research, and because models systematically underresolve frontogenesis-driven MLD shoaling that observations can capture.
+
+## AQUAVIEW and Data Discovery
+
+This project was built to prototype and test [AQUAVIEW](https://aquaview.org) as an ocean data discovery and integration tool. AQUAVIEW's catalog and MCP (Model Context Protocol) interface were used during the research phase to discover and evaluate candidate in-situ observation sources — including WOD profiles, Argo GDAC, IOOS Glider DAC, and ERDDAP endpoints.
+
+The current replay prototype bypasses AQUAVIEW for observation lookup (using pre-built holdout CSVs instead), but the live operational path in `mld_pipeline.py` still integrates with AQUAVIEW for real-time observation search and profile extraction. Completing that live integration remains a key next step.
+
 ## Current Prototype
+
+The app is intentionally a **historical replay sandbox**, not a live operational service. It replays a dense Jul-Aug 2025 holdout window where same-day RTOFS model fields and in-situ observations are available, then demonstrates the full product loop: query a point, correct the model estimate, show confidence, and explain provenance.
 
 - **Mode:** historical replay sandbox
 - **Replay window:** 2025-07-07 to 2025-08-31
@@ -178,10 +192,26 @@ For the current MLD label, a candidate profile generally needs:
 
 See `docs/insitu_requirements.md` for details.
 
+## Next Steps
+
+- Complete the live AQUAVIEW integration for real-time observation lookup and MLD correction
+- Expand the replay window and training data as more same-day RTOFS + in-situ pairs become available
+- Validate correction patterns against known physical dynamics (frontogenesis, eddy-driven MLD shoaling) with domain partners
+- Extend the architecture to additional ocean variables beyond MLD
+
 ## Prototype Caveats
 
 - This is not a live operational product.
-- AQUAVIEW is not the replay observation source.
+- AQUAVIEW is not the replay observation source; the live integration path still needs work.
 - ERDDAP gliders are currently treated as diagnostic/sidecar data because deployment clustering hurt grouped generalization.
 - The replay model is prototype-ready for the app, not production accepted.
 - The current repo layout still preserves several research artifacts so the analysis trail remains auditable.
+
+## Author
+
+**Suramya Angdembay**
+Institute for Advanced Analytics and Society, University of Southern Mississippi
+
+For questions or collaboration: sralimbu@gmail.com
+
+This project is part of the [AQUAVIEW](https://aquaview.org) organization.
